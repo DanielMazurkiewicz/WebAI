@@ -104,6 +104,6 @@ ai.toJson(options)
 
 ```
 
-## Creadits
+## Credits
 
 Heavily inspired on Brain.js
