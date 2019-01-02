@@ -4,7 +4,7 @@ API proposal for web based neural networks.
 ## Basic goals
 
  - Providing simple to learn and use neural network API
- - Use of all possible and available hardware accelerations - all installed gpu's (vulkan, opencl, glsl, cuda), dsp's, fgpa's, attached AI devices, cpu's
+ - Allowing to use of all possible and available hardware accelerations - all installed gpu's (vulkan, opencl, glsl, cuda), dsp's, fgpa's, attached AI devices, cpu's
  - Providing neural network models interoperatibility (including option of training NN on web based system and using model on low end 8 bit non web based systems)
 
 
