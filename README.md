@@ -96,3 +96,7 @@ ai.toJson(options)
   })
 
 ```
+
+## Creadits
+
+Heavily inspired on Brain.js
