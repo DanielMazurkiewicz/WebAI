@@ -15,15 +15,17 @@ API proposal for web based neural networks.
 WebAI.getCapabilities()
   .then(capabilities => {
     /*
+      capabilities object should look like that:
+
       {
         executionUnits: [
           {
-            id: "CPU0",
+            id: "CPU0", //doesn't have to represent real CPU number, NN just have to be runned on separate cpu
             type: "cpu",
             dataTypes: ['fp16', 'fp32', 'fp64', 'u8', 'u16', 'u32', 'u64'] //data types that neural network uses to work
           },
           {
-            id: "GPU0", //vulkan, openCL, GLSL
+            id: "GPU0", //Vulkan, OpenCL, GLSL, CUDA
             type: "gpu",
             dataTypes: ['fp16', 'fp32', 'fp64', 'u8', 'u16', 'u32', 'u64'] //data types that neural network uses to work
           },
@@ -45,24 +47,29 @@ WebAI.getCapabilities()
 
 
 const ai = new WebAI.NeuralNetwork({
-//example defaults:
+//when no object provided to constructor or missing properties, defaults should be assumed
   type: "NN", // RNN, LSTM, GRU
   timeStep: false,
 
   dataType: 'u8',
   activation: "tanh", // identity, binary, tanh, isrlu, relu, elu, softclip, sin, sinc, gauss - https://www.wikiwand.com/en/Activation_function
   layers: [8, 14, 8], // [ inputs, ... hidden ... , outputs ]
-  setupData: 'base64' // field optional, if string then base64 encoded setup data expected, can be also a array or typed array (of dataType)
+  setupData: '' // field optional, if string then base64 encoded setup data expected, can be also a array or typed array (of dataType)
 }, executionUnit);
 
 
 const normalizeInput = input => { // normalize input data to expected data range: 0 .. 1
+  // normalization code
+  return [ /* 0 , 1 , 0.5  .... */ ];
 }
 
 const normalizeOutput = output => { // normalize output data to expected data range: 0 .. 1
+  //normalization code
+  return [ /* 0 , 1 , 0.5  .... */ ];
 }
 
 const denormalizeOutput = outputNormalized => { // reverse output data normalization
+  //denormalization code
 }
 
 
@@ -86,7 +93,7 @@ ai.verify(data, options) // data can be a binary stream or typed array
   });
 
 
-ai.run(input, normalizeInput, denormalizeOutput) //if input callback skipped then input should be binary
+ai.run(input, normalizeInput, denormalizeOutput) //if normalizeInput callback skipped then input should be typed array of dataType of NN, if denormalizeOutput skipped then typed array of dataType of NN should be returned
   .then(output => {
   })
 
