@@ -58,7 +58,7 @@ const ai = new WebAI.NeuralNetwork({
   dataType: 'u8',
   activation: "tanh", // identity, binary, tanh, isrlu, relu, elu, softclip, sin, sinc, gauss - https://www.wikiwand.com/en/Activation_function
   layers: [8, 14, 8], // [ inputs, ... hidden ... , outputs ]
-  setupData: '' // field optional, if string then base64 encoded setup data expected, can be also a array or typed array (of dataType)
+  setupData: '' // weights, biases ... - field optional, if string then base64 encoded setup data expected, can be also a array or typed array (of dataType)
 }, executionUnit);
 
 
