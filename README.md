@@ -104,6 +104,8 @@ ai.run(input, normalizeInput, denormalizeOutput) //if normalizeInput callback sk
   .then(output => {
   })
 
+ai.moveTo(executionUnit) // moves ai (also if in ongoing operation) to another execution unit
+
 ai.toJson(options)
   .then(json => {
     // json should contain all necesarry data to instantiate new WebAI.NeuralNetwork
