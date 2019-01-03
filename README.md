@@ -62,6 +62,39 @@ const ai = new WebAI.NeuralNetwork({
 }, executionUnit);
 
 
+
+//advanced NN architecture:
+const ai = new WebAI.NeuralNetwork({
+  type: "NN", // RNN, LSTM, GRU
+  timeStep: false,
+
+  dataType: 'u8',
+  activation: "tanh", // identity, binary, tanh, isrlu, relu, elu, softclip, sin, sinc, gauss - https://www.wikiwand.com/en/Activation_function
+
+  layers: [
+    {
+      name: "input", //optional - allows to pipe by name
+      count: 8
+    },
+    8, // regular layer with 8 neurons
+    10,
+    {
+      count: 4, // 4 outputs
+      pipe: [ // multiple pipes posible
+        {
+          count: 16, // adds 16 neurons to current layer of which outputs will be available at piped layers
+          toLayers: ['input', 1] // piped to named layer and by index of layer
+        }
+      ]
+    }
+  ],
+
+  setupData: '' // weights, biases ... - field optional, if string then base64 encoded setup data expected, can be also a array or typed array (of dataType)
+}, executionUnit);
+
+
+
+
 const normalizeInput = input => { // normalize input data to expected data range: 0 .. 1
   // normalization code
   return [ /* 0 , 1 , 0.5  .... */ ];
