@@ -92,6 +92,9 @@ ai.train(data, options) // data can be a binary stream or typed array
   });
 
 
+ai.stopTraining() // stops training (if ongoing) and fires promise for ai.train
+
+
 ai.verify(data, options) // data can be a binary stream or typed array
   .then(verificationInfo => {
   });
@@ -105,6 +108,7 @@ ai.toJson(options)
   .then(json => {
     // json should contain all necesarry data to instantiate new WebAI.NeuralNetwork
   })
+
 
 ```
 
