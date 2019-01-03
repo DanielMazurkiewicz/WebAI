@@ -12,7 +12,7 @@ API proposal for web based neural networks.
 
 ```javascript
 
-WebAI.getCapabilities()
+WebAI.getCapabilities(optionalCapabilitiesQueryObject)
   .then(capabilities => {
     /*
       capabilities object should look like that:
@@ -23,21 +23,25 @@ WebAI.getCapabilities()
             id: "CPU0", //doesn't have to represent real CPU number, NN just have to be runned on separate cpu
             type: "cpu",
             dataTypes: ['fp16', 'fp32', 'fp64', 'u8', 'u16', 'u32', 'u64'] //data types that neural network uses to work
+            cue: 0 //number of machine learning tasks awaiting for execution
           },
           {
             id: "GPU0", //Vulkan, OpenCL, GLSL, CUDA
             type: "gpu",
             dataTypes: ['fp16', 'fp32', 'fp64', 'u8', 'u16', 'u32', 'u64'] //data types that neural network uses to work
+            cue: 10
           },
           {
             id: "DSP0",
             type: "dsp",
             dataTypes: ['fp16', 'fp32', 'fp64', 'u8', 'u16', 'u32', 'u64'] //data types that neural network uses to work
+            cue: 10
           },
           {
             id: "FPGA0",
             type: "fpga",
             dataTypes: ['fp16', 'fp32', 'fp64', 'u8', 'u16', 'u32', 'u64'] //data types that neural network uses to work
+            cue: 10
           }
         ]
       }
