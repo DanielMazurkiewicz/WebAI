@@ -109,6 +109,13 @@ const data = ai.prepareData(normalizeInput, normalizeOutput, [
 
 
 ai.train(data, options) // data can be a binary stream or typed array
+  /*
+    example options object could look like that:
+    {
+      type: "back-propagation"
+      ... -  and some backpropagation training detailed options
+    }
+  */
   .then(trainingInfo => {
   });
 
