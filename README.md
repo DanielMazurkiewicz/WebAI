@@ -196,6 +196,12 @@ There could be also designed standardized JSON format for simple normalizations/
 ## Links
 https://towardsdatascience.com/a-deeper-understanding-of-nnets-part-1-cnns-263a6e3ac61
 
+https://becominghuman.ai/a-deeper-understanding-of-nnets-part-2-rnns-b32240998fa9
+
+https://medium.com/@godricglow/a-deeper-understanding-of-nnets-part-3-lstm-and-gru-e557468acb04
+
+
+
 https://www.wikiwand.com/en/Activation_function
 
 https://webmachinelearning.github.io/
