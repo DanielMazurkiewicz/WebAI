@@ -4,6 +4,7 @@ API proposal for web based neural networks.
 ## Basic goals
 
  - Providing simple to learn and use machine learning API
+ - Allowing to train and run AI in web browsers
  - Allowing to use of all possible and available hardware accelerations (simultaneusly) for training and running NNs - all installed gpu's (vulkan, opencl, glsl, cuda), dsp's, fgpa's, attached AI devices, cpu's
  - Neural networks architecture as flexible descriptive JSON format that can be:
     * easily maintained by developers
@@ -167,7 +168,7 @@ const ai = new WebAI.NeuralNetwork({
 
   layers: [
     {
-      name: "input", //optional - allows to pipe by name
+      name: "input", //optional - allows later to pipe by layer name
       count: 8
     },
     8, // regular layer with 8 neurons
@@ -187,6 +188,10 @@ const ai = new WebAI.NeuralNetwork({
 }, executionUnit);
 
 ```
+
+## Further things to keep in mind
+
+There could be also designed standardized JSON format for simple normalizations/denormalizations of numbers and enumerations
 
 ## Links
 https://towardsdatascience.com/a-deeper-understanding-of-nnets-part-1-cnns-263a6e3ac61
