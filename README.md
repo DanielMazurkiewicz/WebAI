@@ -183,9 +183,11 @@ const ai = new WebAI.NeuralNetwork({
 
 ## Links
 https://towardsdatascience.com/a-deeper-understanding-of-nnets-part-1-cnns-263a6e3ac61
+
 https://www.wikiwand.com/en/Activation_function
 
 https://webmachinelearning.github.io/
+
 https://webmachinelearning.github.io/webnn/
 
 
