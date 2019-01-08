@@ -3,19 +3,27 @@ API proposal for web based neural networks.
 
 ## Basic goals
 
- - Providing simple to learn and use neural network API
- - Allowing to use of all possible and available hardware accelerations - all installed gpu's (vulkan, opencl, glsl, cuda), dsp's, fgpa's, attached AI devices, cpu's
- - Providing neural network models interoperatibility (including option of training NN on web based system and using model on low end 8 bit non web based systems)
+ - Providing simple to learn and use machine learning API
+ - Allowing to use of all possible and available hardware accelerations (simultaneusly) for training and running NNs - all installed gpu's (vulkan, opencl, glsl, cuda), dsp's, fgpa's, attached AI devices, cpu's
+ - Neural networks architecture as flexible descriptive JSON format that can be:
+    * easily maintained by developers
+    * easily compiled into executable code 
+    * easily transferred between proceeses or machines
+    * easily converted into a code in another programming languague
+    * flexible enough so existing models from tensorflow or caffe or other popular libraries could be easily converted
+    * easily used by visual neural network designing/training tools
 
 
 ## Javascript example
+
+This is API proposal - just something to start with standardization process.
 
 ```javascript
 
 WebAI.getCapabilities(optionalCapabilitiesQueryObject)
   .then(capabilities => {
     /*
-      capabilities object should look like that:
+      capabilities object could look like that:
 
       {
         executionUnits: [
@@ -50,46 +58,20 @@ WebAI.getCapabilities(optionalCapabilitiesQueryObject)
 
 
 
-const ai = new WebAI.NeuralNetwork({
-//when no object provided to constructor or missing properties, defaults should be assumed
-  type: "NN", // RNN, LSTM, GRU
-  timeStep: false,
+const ai = new WebAI.NeuralNetwork({ // simple NN example object
+  // when no object provided to constructor or missing properties, defaults should be assumed
 
-  dataType: 'u8',
-  activation: "tanh", // identity, binary, tanh, isrlu, relu, elu, softclip, sin, sinc, gauss - https://www.wikiwand.com/en/Activation_function
+  dataType: 'fp16',
+  activation: "tanh", // available options: identity, binary, tanh, isrlu, relu, elu, softclip, sin, sinc, gauss
+                      // see https://www.wikiwand.com/en/Activation_function
+
   layers: [8, 14, 8], // [ inputs, ... hidden ... , outputs ]
-  setupData: '' // weights, biases ... - field optional, if string then base64 encoded setup data expected, can be also a array or typed array (of dataType)
-}, executionUnit);
 
+  setupData: '' // weights, biases ... - field optional,
+                // if string then base64 encoded setup data expected, 
+                // can be also an array or typed array (of dataType),
+                // if field not provided random values assumed
 
-
-//advanced NN architecture:
-const ai = new WebAI.NeuralNetwork({
-  type: "NN", // RNN, LSTM, GRU
-  timeStep: false,
-
-  dataType: 'u8',
-  activation: "tanh", // identity, binary, tanh, isrlu, relu, elu, softclip, sin, sinc, gauss - https://www.wikiwand.com/en/Activation_function
-
-  layers: [
-    {
-      name: "input", //optional - allows to pipe by name
-      count: 8
-    },
-    8, // regular layer with 8 neurons
-    10,
-    {
-      count: 4, // 4 outputs
-      pipe: [ // multiple pipes posible
-        {
-          count: 16, // adds 16 neurons to current layer of which outputs will be available at piped layers
-          toLayers: ['input', 1] // piped to named layer and by index of layer
-        }
-      ]
-    }
-  ],
-
-  setupData: '' // weights, biases ... - field optional, if string then base64 encoded setup data expected, can be also a array or typed array (of dataType)
 }, executionUnit);
 
 
@@ -101,12 +83,14 @@ const normalizeInput = input => { // normalize input data to expected data range
 }
 
 const normalizeOutput = output => { // normalize output data to expected data range: 0 .. 1
-  //normalization code
+  // normalization code
   return [ /* 0 , 1 , 0.5  .... */ ];
 }
 
 const denormalizeOutput = outputNormalized => { // reverse output data normalization
-  //denormalization code
+  // outputNormalized is an array of floats with range 0.0 to 1.0
+  // denormalization code
+  // returns denormalized output
 }
 
 
@@ -119,6 +103,10 @@ const data = ai.prepareData(normalizeInput, normalizeOutput, [
   inputDataN, outputDataN
   */
 ])
+/* optionally:
+  const stream = ai.prepareDataStream(normalizeInput, normalizeOutput)
+*/
+
 
 ai.train(data, options) // data can be a binary stream or typed array
   .then(trainingInfo => {
@@ -133,12 +121,23 @@ ai.verify(data, options) // data can be a binary stream or typed array
   });
 
 
-ai.run(input, normalizeInput, denormalizeOutput) //if normalizeInput callback skipped then input should be typed array of dataType of NN, if denormalizeOutput skipped then typed array of dataType of NN should be returned
+ai.run(input, normalizeInput, denormalizeOutput) 
+  // if normalizeInput callback not provided or null then input expected to be a typed array of dataType of NN, 
+  // if denormalizeOutput not provided or null then typed array of dataType of NN should be returned
+
   .then(output => {
   })
 
-ai.moveTo(executionUnit) // moves ai (also if in ongoing operation) to another execution unit
+ai.moveTo(executionUnit) // moves ai (also if in ongoing operation - train, verify, run) to another execution unit
 
+
+
+/*
+  options example:
+  {
+    dataTypeAs: "base64" // available options: base64, array
+  }
+*/
 ai.toJson(options)
   .then(json => {
     // json should contain all necesarry data to instantiate new WebAI.NeuralNetwork
@@ -146,6 +145,50 @@ ai.toJson(options)
 
 
 ```
+
+## Advanced neural networks architectures
+
+ * For any sort of recurrent NN "pipes" could be used
+ * Pipes could direct neuron outputs in both directions (forward and backward) and to current layer as well
+ * Activation function and other "future" options can be modified for every layer and every pipe in a layer
+
+
+```javascript
+const ai = new WebAI.NeuralNetwork({
+  dataType: 'u8',
+  activation: "tanh", // if more sophisticated architecture provided this is considered only as default activation
+
+  layers: [
+    {
+      name: "input", //optional - allows to pipe by name
+      count: 8
+    },
+    8, // regular layer with 8 neurons
+    10,
+    {
+      count: 4, // 4 outputs
+      pipe: [   // multiple pipes posible
+        {
+          activation: "isrlu",    // overwrites default activation function
+          count: 16,              // adds 16 neurons to current layer of which outputs will be available at piped layers
+          toLayers: ['input', 1]  // piped to named layer and by index of layer
+        }
+      ]
+    }
+  ],
+
+}, executionUnit);
+
+```
+
+## Links
+https://towardsdatascience.com/a-deeper-understanding-of-nnets-part-1-cnns-263a6e3ac61
+https://www.wikiwand.com/en/Activation_function
+
+https://webmachinelearning.github.io/
+https://webmachinelearning.github.io/webnn/
+
+
 
 ## Credits
 
