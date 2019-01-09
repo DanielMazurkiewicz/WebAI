@@ -171,15 +171,15 @@ ai.toJson(options)
 
 ## Advanced neural networks architectures
 
- * For any sort of recurrent NN "pipes" could be used
- * Pipes could direct neuron outputs in both directions (forward and backward) - also to current layer/pipe as well
- * Activation function and other "future" options can be modified for every layer and every pipe in a layer
- * Pipes could also be assigned names
- * Layer could be build out of pipes only
- * Pipes on first layer adds additional inputs
- * Pipes without property "to" pipe simply to next layer
+ - For any sort of recurrent NN "pipes" could be used
+ - Pipes could direct neuron outputs in both directions (forward and backward) - also to current layer/pipe as well
+ - Activation function and other "future" options can be modified for every layer and every pipe in a layer
+ - Pipes could also be assigned names
+ - Layer could be build out of pipes only
+ - Pipes on first layer adds additional inputs
+ - Pipes without property "to" pipe simply to next layer
 
- * Properties summary:
+ Properties summary:
   - **name** property defines a name for layer or pipe
   - **activation** property defines an activation function for neurons in given layer or pipe
   - **pipes** property defines a list of pipes for given layer
