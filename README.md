@@ -103,16 +103,26 @@ const denormalizeOutput = outputNormalized => { // reverse output data normaliza
 
 
 
-// should prepare data according to neural network settings (especially number of inputs, number of outputs and data type)
-// returns typed array of dataType of NN
+// Should prepare data according to neural network settings (especially number of inputs, number of outputs and data type)
+// returns typed array of dataType of NN with series of instructions and data
+// <instruction> <inputData...> <outputData...>
+//  where instruction could be:
+//  0 - WebAI.reset - no input and no output data, only performing reset
+//  1 - WebAI.ignore - expect only input data
+//  3 - full training data (input and output)
+// Size of inputData and outputData determined by neural network architecture and data type
+// Size of instruction is an equivalent of NN data type size
+
 const data = ai.prepareData(normalizeInput, normalizeOutput, [
   /*
   inputData1, outputData1,
   inputData2, outputData2,
   ...
-  WebAI.reset,                // const "reset" of WebAI defines an instruction inside data for training or verification procedures that NN internal historical and recurrent data reset should be performed
+  WebAI.reset,                // const "reset" of WebAI defines an instruction inside data for training or verification procedures 
+                              // that NN internal historical and recurrent data reset should be performed
   ...
-  inputDataN, WebAI.ignore,   // const "ignore" of WebAI defines an instruction inside data for training or verification procedures that for given input output should be ignored (for example in recurrent NNs)
+  inputDataN, WebAI.ignore,   // const "ignore" of WebAI defines an instruction inside data for training or verification procedures 
+                              // that for given input output should be ignored (for example in recurrent NNs)
   ...
   inputDataX, outputDataX
   */
@@ -252,7 +262,8 @@ const ai = new WebAI.NeuralNetwork({
     {
       // layer of GRU LSTM kind of neurons
       connections: "all-to-all", // this is default and can be skipped, 
-                                 // every neuron in this layer has a connection to every predecessing neuron output (or every input value if predecessing is input layer/input pipe)
+                                 // every neuron in this layer has a connection to every predecessing neuron 
+                                 // output (or every input value if predecessing is input layer/input pipe)
 
       type: "gru",  // default value if property skipped is: "standard"
                     // other available options: "lstm-p", "lstm-n", "gru"
