@@ -106,9 +106,9 @@ const denormalizeOutput = outputNormalized => { // reverse output data normaliza
 // Should prepare data according to neural network settings (especially number of inputs, number of outputs and data type)
 // returns typed array of dataType of NN with series of instructions and data
 // <instruction> <inputData...> <outputData...>
-//  where instruction could be:
-//  0 - WebAI.reset - no input and no output data, only performing reset
-//  1 - WebAI.ignore - expect only input data
+//  where instruction could be encoded as:
+//  0 - WebAI.reset translates to that code - no input and no output data, only performing reset
+//  1 - WebAI.ignore translates to that code - expect only input data
 //  3 - full training data (input and output)
 // Size of inputData and outputData determined by neural network architecture and data type
 // Size of instruction is an equivalent of NN data type size
