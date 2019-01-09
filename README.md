@@ -81,7 +81,7 @@ const ai = new WebAI.NeuralNetwork({ // simple NN example object
                     // and it doesn't have to be same execution unit for all tasks
 
 
-
+// === Start of user provided normalization/denormalization callbacks ===
 
 const normalizeInput = input => { // normalize input data to expected data range: 0 .. 1
   // normalization code
@@ -99,6 +99,9 @@ const denormalizeOutput = outputNormalized => { // reverse output data normaliza
   // returns denormalized output
 }
 
+//  === End of user provided normalization/denormalization callbacks ===
+
+
 
 // should prepare data according to neural network settings (especially number of inputs, number of outputs and data type)
 // returns typed array of dataType of NN
@@ -107,7 +110,7 @@ const data = ai.prepareData(normalizeInput, normalizeOutput, [
   inputData1, outputData1,
   inputData2, outputData2,
   ...
-  WebAI.reset,                // const "ignore" of WebAI defines an instruction inside data for training or verification procedures that NN internal historical and recurrent data reset should be performed
+  WebAI.reset,                // const "reset" of WebAI defines an instruction inside data for training or verification procedures that NN internal historical and recurrent data reset should be performed
   ...
   inputDataN, WebAI.ignore,   // const "ignore" of WebAI defines an instruction inside data for training or verification procedures that for given input output should be ignored (for example in recurrent NNs)
   ...
