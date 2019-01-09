@@ -76,7 +76,9 @@ const ai = new WebAI.NeuralNetwork({ // simple NN example object
                 // can be also an array or typed array (of dataType),
                 // if field not provided random values assumed
 
-}, executionUnit);
+}, executionUnit);  // execution unit parameter could be provided as an array of execution units, 
+                    // if so then JS engine should decide on what execution unit NN tasks will be executed 
+                    // and it doesn't have to be same execution unit for all tasks
 
 
 
@@ -105,7 +107,11 @@ const data = ai.prepareData(normalizeInput, normalizeOutput, [
   inputData1, outputData1,
   inputData2, outputData2,
   ...
-  inputDataN, outputDataN
+  WebAI.reset,                // const "reset" of WebAI defines a reset call for historical or reccurent data inside NN
+  ...
+  inputDataN, WebAI.ignore,   // const "ignore" of WebAI defines an instruction for training and verification procedures that for given input output should be ignored (for example in recurrent NNs)
+  ...
+  inputDataX, outputDataX
   */
 ])
 /* optionally:
@@ -140,8 +146,9 @@ ai.run(input, normalizeInput, denormalizeOutput)
   .then(output => {
   })
 
-ai.moveTo(executionUnit) // moves ai (also if in ongoing operation - train, verify, run) to another execution unit
+ai.reset() // resets any historical data inside NN (for NN's with recurences or historical data)
 
+ai.moveTo(executionUnit) // moves ai (also if in ongoing operation - train, verify, run) to another execution unit
 
 
 /*
@@ -165,11 +172,21 @@ ai.toJson(options)
 ## Advanced neural networks architectures
 
  * For any sort of recurrent NN "pipes" could be used
- * Pipes could direct neuron outputs in both directions (forward and backward) and to current layer/ as well
+ * Pipes could direct neuron outputs in both directions (forward and backward) - also to current layer/pipe as well
  * Activation function and other "future" options can be modified for every layer and every pipe in a layer
  * Pipes could also be assigned names
- * Layer could be build only out of pipes
+ * Layer could be build out of pipes only
+ * Pipes on first layer adds additional inputs
+ * Pipes without property "to" pipe simply to next layer
 
+ * Properties summary:
+  - **name** property defines a name for layer or pipe
+  - **activation** property defines an activation function for neurons in given layer or pipe
+  - **pipes** property defines a list of pipes for given layer
+  - **count** property defines how many inputs/neurons/outputs is in layer/pipe
+  - **to** property defines where to pipe neuron outputs(or data inputs if on input layer) of current layer/pipe
+  - **history** property defines additional outputs of current layer/pipe build out of values of neuron outputs (or input data if on input layer) from given number of previous NN runs
+  - **historyTo** property defines where to pipe previous NN runs values of neuron outputs(or data inputs if on input layer) from current layer/pipe
 
 ```javascript
 const ai = new WebAI.NeuralNetwork({
@@ -184,12 +201,12 @@ const ai = new WebAI.NeuralNetwork({
     8, // regular layer with 8 neurons
     10,
     {
-      count: 4, // 4 outputs
-      pipe: [   // multiple pipes posible
+      count: 4,   // 4 outputs
+      pipes: [    // multiple pipes posible
         {
           activation: "isrlu",    // overwrites default activation function
-          count: 16,              // adds 16 neurons to current layer of which outputs will be available at piped layers
-          toLayers: ['input', 1]  // piped to named layer and by index of layer
+          count: 16,              // adds 16 neurons to current layer of which outputs will be available at piped layers/pipes
+          to: ['input', 1]        // piped to named layer (or pipe) and by index of layer
         }
       ]
     }
@@ -198,6 +215,39 @@ const ai = new WebAI.NeuralNetwork({
 }, executionUnit);
 
 ```
+
+
+
+
+```javascript
+const ai = new WebAI.NeuralNetwork({
+  dataType: 'fp32',
+  activation: "tanh",
+
+  layers: [
+    {
+      name: 'input'
+      pipes: [
+        {
+          name: 'rgb',
+          count: 3,
+          history: 2,           // reserves memory for 6 additional values (count * history = 2 * 3 = 6) to keep two previous values of given 3 inputs
+          historyTo: ['input']  // pipe historical values to input layer (will create hidden 6 inputs) - note that original 3 inputs are piped directly to next layer
+        },
+        {
+          name: 'coordinates',
+          count: 2
+        }
+      ]
+    },
+    18, // regular layer with 18 neurons
+    3   // 3 neurons output layer
+  ],
+
+}, executionUnit);
+
+```
+
 
 ## Further things to keep in mind
 
