@@ -158,7 +158,9 @@ ai.moveTo(executionUnit) // moves ai (also if in ongoing operation - train, veri
   options example:
   {
     dataTypeAs: "base64",   // available options: base64, array, ?typedArray?
-    layers: {               // if provided - exports only selected layers/selected range of layers as NN JSON object 
+    layers: {               // if provided - exports only selected layers/selected range of layers as NN JSON object
+                            // allows to make autoencoder NNs
+                            // should throw an error if there is any pipe that would make splitting NN impossible
       from: "input"
       to: "output"
     }
@@ -184,8 +186,10 @@ ai.toJson(options)
 
  Properties summary:
   - **name** property defines a name for layer or pipe
+  - **type** property defines a special type for given layer or pipe, available options: standard, lstm-n, lstm-p, gru. Where "n" stands for "normalized", and "p" for "pseudo"
   - **activation** property defines an activation function for neurons in given layer or pipe
   - **pipes** property defines a list of pipes for given layer
+  - **connections** property defines a way that nurons from given pipe/layer are connected to predecessing layer
   - **count** property defines how many inputs/neurons/outputs is in layer/pipe
   - **to** property defines where to pipe neuron outputs(or data inputs if on input layer) of current layer/pipe
   - **history** property defines additional outputs of current layer/pipe build out of values of neuron outputs (or input data if on input layer) from given number of previous NN runs
@@ -228,14 +232,16 @@ const ai = new WebAI.NeuralNetwork({
   activation: "tanh",
 
   layers: [
-    {
+    { // first layer always is an input layer
       name: 'input'
       pipes: [
         {
           name: 'rgb',
           count: 3,
-          history: 2,           // reserves memory for 6 additional values (count * history = 2 * 3 = 6) to keep two previous values of given 3 inputs
-          historyTo: ['input']  // pipe historical values to input layer (will create hidden 6 inputs) - note that original 3 inputs are piped directly to next layer
+          history: 2,           // reserves memory for 6 additional values (count * history = 2 * 3 = 6) 
+                                // to keep two previous values of given 3 inputs
+          historyTo: ['input']  // pipe historical values to input layer (will create hidden 6 inputs)
+                                // note that original 3 inputs are still piped directly to next layer
         },
         {
           name: 'coordinates',
@@ -243,8 +249,18 @@ const ai = new WebAI.NeuralNetwork({
         }
       ]
     },
+    {
+      // layer of GRU LSTM kind of neurons
+      connections: "all-to-all", // this is default and can be skipped, 
+                                 // every neuron in this layer has a connection to every predecessing neuron output (or every input value if predecessing is input layer/input pipe)
+
+      type: "gru",  // default value if property skipped is: "standard"
+                    // other available options: "lstm-p", "lstm-n", "gru"
+
+      count: 3 // 3 neurons of GRU LSTM
+    },
     18, // regular layer with 18 neurons
-    3   // 3 neurons output layer
+    3   // 3 neurons output layer, last layer always is an output layer
   ],
 
 }, executionUnit);
