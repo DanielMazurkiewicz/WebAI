@@ -178,7 +178,7 @@ ai.toJson(options)
  - Pipes could direct neuron outputs in both directions (forward and backward) - also to current layer/pipe as well
  - Activation function and other "future" options can be modified for every layer and every pipe in a layer
  - Pipes could also be assigned names
- - Layer could be build out of pipes only
+ - Layer could be build out of pipes only (as an option)
  - Pipes on first layer adds additional inputs
  - Pipes without property "to" pipe simply to next layer
 
