@@ -32,10 +32,13 @@ WebAI.getCapabilities(optionalCapabilitiesQueryObject)
             id: "CPU0", //doesn't have to represent real CPU number, NN just have to be runned on separate cpu
             type: "cpu",
             dataTypes: ['fp16', 'fp32', 'fp64', 'u8', 'u16', 'u32', 'u64'] //data types that neural network uses to work
-            cue: 0 //number of machine learning tasks awaiting for execution
+            cue: 0  // number of machine learning tasks awaiting for execution
+                    // there is no sense of executing in parallel NN tasks (run, train, valudate) on single execution unit
+                    // every site should have own cue for every execution unit
+                    // currently opened/visible site/tab should have a priority on executing NN tasks from cue over other non visible sites/tabs
           },
           {
-            id: "GPU0", //Vulkan, OpenCL, GLSL, CUDA
+            id: "GPU0", //Vulkan/SPIR-V, OpenCL, GLSL, CUDA
             type: "gpu",
             dataTypes: ['fp16', 'fp32', 'fp64', 'u8', 'u16', 'u32', 'u64'] //data types that neural network uses to work
             cue: 10
@@ -95,7 +98,8 @@ const denormalizeOutput = outputNormalized => { // reverse output data normaliza
 }
 
 
-//should prepare data according to neural network settings (especially number of inputs, number of outputs and data type)
+// should prepare data according to neural network settings (especially number of inputs, number of outputs and data type)
+// returns typed array of dataType of NN
 const data = ai.prepareData(normalizeInput, normalizeOutput, [
   /*
   inputData1, outputData1,
@@ -143,7 +147,11 @@ ai.moveTo(executionUnit) // moves ai (also if in ongoing operation - train, veri
 /*
   options example:
   {
-    dataTypeAs: "base64" // available options: base64, array
+    dataTypeAs: "base64",   // available options: base64, array, ?typedArray?
+    layers: {               // if provided - exports only selected layers/selected range of layers as NN JSON object 
+      from: "input"
+      to: "output"
+    }
   }
 */
 ai.toJson(options)
@@ -157,8 +165,10 @@ ai.toJson(options)
 ## Advanced neural networks architectures
 
  * For any sort of recurrent NN "pipes" could be used
- * Pipes could direct neuron outputs in both directions (forward and backward) and to current layer as well
+ * Pipes could direct neuron outputs in both directions (forward and backward) and to current layer/ as well
  * Activation function and other "future" options can be modified for every layer and every pipe in a layer
+ * Pipes could also be assigned names
+ * Layer could be build only out of pipes
 
 
 ```javascript
