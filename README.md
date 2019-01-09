@@ -107,9 +107,9 @@ const data = ai.prepareData(normalizeInput, normalizeOutput, [
   inputData1, outputData1,
   inputData2, outputData2,
   ...
-  WebAI.reset,                // const "reset" of WebAI defines a reset call for historical or reccurent data inside NN
+  WebAI.reset,                // const "ignore" of WebAI defines an instruction inside data for training or verification procedures that NN internal historical and recurrent data reset should be performed
   ...
-  inputDataN, WebAI.ignore,   // const "ignore" of WebAI defines an instruction for training and verification procedures that for given input output should be ignored (for example in recurrent NNs)
+  inputDataN, WebAI.ignore,   // const "ignore" of WebAI defines an instruction inside data for training or verification procedures that for given input output should be ignored (for example in recurrent NNs)
   ...
   inputDataX, outputDataX
   */
