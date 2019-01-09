@@ -216,7 +216,7 @@ const ai = new WebAI.NeuralNetwork({
 
 ```
 
-
+### Another advanced example with usage of "history" shown
 
 
 ```javascript
