@@ -189,7 +189,7 @@ ai.toJson(options)
   - **type** property defines a special type for given layer or pipe, available options: standard, lstm-n, lstm-p, gru. Where "n" stands for "normalized", and "p" for "pseudo"
   - **activation** property defines an activation function for neurons in given layer or pipe
   - **pipes** property defines a list of pipes for given layer
-  - **connections** property defines a way that nurons from given pipe/layer are connected to predecessing layer
+  - **connections** property defines a way that nurons from given pipe/layer are connected to predecessing neurons
   - **count** property defines how many inputs/neurons/outputs is in layer/pipe
   - **to** property defines where to pipe neuron outputs(or data inputs if on input layer) of current layer/pipe
   - **history** property defines additional outputs of current layer/pipe build out of values of neuron outputs (or input data if on input layer) from given number of previous NN runs
