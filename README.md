@@ -323,6 +323,7 @@ WebAI.defineCustomOperation(
 
   },
   ["parameter1", "parameter2", "parameterN"], // JSON model properties that should be passed as arguments to this operation
+  // there should be a list of names reserved for special purpouses
 );
 
 // defines a new activation function for given domain, its execution always fallbacks to JS engine
