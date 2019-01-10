@@ -31,6 +31,7 @@ WebAI.getCapabilities(optionalCapabilitiesQueryObject)
           {
             id: "CPU0", //doesn't have to represent real CPU number, NN just have to be runned on separate cpu
             type: "cpu",
+            domains: ['core', 'http://w3c/tensorflow-2018.12', 'http://w3c/tensorflow-2019.06'],
             dataTypes: ['fp16', 'fp32', 'fp64', 'u8', 'u16', 'u32', 'u64'] //data types that neural network uses to work
             cue: 0  // number of machine learning tasks awaiting for execution
                     // there is no sense of executing in parallel NN tasks (run, train, valudate) on single execution unit
@@ -40,18 +41,21 @@ WebAI.getCapabilities(optionalCapabilitiesQueryObject)
           {
             id: "GPU0", //Vulkan/SPIR-V, OpenCL, GLSL, CUDA
             type: "gpu",
+            domains: ['core', 'http://w3c/tensorflow-2018.12', 'http://w3c/tensorflow-2019.06'],
             dataTypes: ['fp16', 'fp32', 'fp64', 'u8', 'u16', 'u32', 'u64'] //data types that neural network uses to work
             cue: 10
           },
           {
             id: "DSP0",
             type: "dsp",
+            domains: ['core', 'http://w3c/tensorflow-2018.12', 'http://w3c/tensorflow-2019.06'],
             dataTypes: ['fp16', 'fp32', 'fp64', 'u8', 'u16', 'u32', 'u64'] //data types that neural network uses to work
             cue: 10
           },
           {
             id: "FPGA0",
             type: "fpga",
+            domains: ['core', 'http://w3c/tensorflow-2018.12', 'http://w3c/tensorflow-2019.06'],
             dataTypes: ['fp16', 'fp32', 'fp64', 'u8', 'u16', 'u32', 'u64'] //data types that neural network uses to work
             cue: 10
           }
@@ -201,8 +205,9 @@ ai.toJson(options)
  - Pipes without property "to" pipe simply to next layer
 
  Properties summary:
+  - **domain** property defines a domain for operations (??and activation functions??) in ml model, default: "core"
   - **name** property defines a name for layer or pipe
-  - **type** property defines a special type for given layer or pipe, available options: standard, lstm-n, lstm-p, gru. Where "n" stands for "normalized", and "p" for "pseudo"
+  - **type** property defines a type of operator for given layer or pipe, available options for core ml: neurons, lstm-n, lstm-p, gru. Where "n" stands for "normalized", and "p" for "pseudo". Extended operations sets might require defining aditional properties.
   - **activation** property defines an activation function for neurons in given layer or pipe
   - **pipes** property defines a list of pipes for given layer
   - **connections** property defines a way that nurons from given pipe/layer are connected to predecessing neurons
@@ -271,10 +276,10 @@ const ai = new WebAI.NeuralNetwork({
                                  // every neuron in this layer has a connection to every predecessing neuron 
                                  // output (or every input value if predecessing is input layer/input pipe)
 
-      type: "gru",  // default value if property skipped is: "standard"
-                    // other available options: "lstm-p", "lstm-n", "gru"
+      type: "gru",  // default value if property skipped is: "neurons"
+                    // other available options: "lstm-p", "lstm-n", "gru" (core operators)
 
-      count: 3 // 3 neurons of GRU LSTM
+      count: 3      // 3 neurons of GRU LSTM
     },
     18, // regular layer with 18 neurons
     3   // 3 neurons output layer, last layer always is an output layer
@@ -284,6 +289,45 @@ const ai = new WebAI.NeuralNetwork({
 
 ```
 
+## API for low level operations
+
+```javascript
+
+WebAI.getOperations("operations_domain eg: 'core'", executionUnit)
+  .then(webml => {
+    /*
+      would return object with operation functions:
+      {
+        ...
+        fusedMatMul(a, b, transposeA, transposeB, bias?, activationFn?) {}
+        ...
+      }
+    */
+
+    webml.fusedMatMul(a, b, transposeA, transposeB, bias?, activationFn?);
+
+  })
+
+
+// custom domains will be available only for cpu execution units.
+WebAI.defineCustomDomain("domain_name");
+
+
+// defines a new operation for given domain, operation execution always fallbacks to JS engine, 
+// no matter of what execution unit is used
+WebAI.defineCustomOperation("operation_name", "operation_domain", function operation(operation_params) {
+  // js code itself can make use of any existing API (including webGPU and webgl)
+
+});
+
+// defines a new activation function for given domain, its execution always fallbacks to JS engine, 
+WebAI.defineCustomActivation("activation_name", "activation_domain", function activation(activationInput) {
+  // ...
+  return activationOutput;
+});
+
+
+```
 
 ## Further things to keep in mind
 
