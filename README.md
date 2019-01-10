@@ -172,12 +172,15 @@ ai.moveTo(executionUnit) // moves ai (also if in ongoing operation - train, veri
   {
     dataTypeAs: "base64",   // available options: base64, array, ?typedArray?
     layers: {               // if provided - exports only selected layers/selected range of layers as NN JSON object
-                            // allows to make autoencoder NNs
+                            // allows to make autoencoder NNs or to split NNs so they could be runned in chain of 
+                            // separate sub-NNs across multiple execution units (eg. first 2 NN layers on CPU, 
+                            // next 5 on GPU0 and another 4 on GPU1)
                             // should throw an error if there is any pipe that would make splitting NN impossible
       from: "input"
       to: "output"
     }
   }
+  returns always fully functional NN model in JSON object
 */
 ai.toJson(options)
   .then(json => {
