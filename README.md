@@ -315,12 +315,17 @@ WebAI.defineCustomDomain("domain_name");
 
 // defines a new operation for given domain, operation execution always fallbacks to JS engine, 
 // no matter of what execution unit is used
-WebAI.defineCustomOperation("operation_name", "operation_domain", function operation(operation_params) {
+WebAI.defineCustomOperation(
+  "operation_name", 
+  "operation_domain", 
+  function operation(operation_params) {
   // js code itself can make use of any existing API (including webGPU and webgl)
 
-});
+  },
+  ["parameter1", "parameter2", "parameterN"], // JSON model properties that should be passed as arguments to this operation
+);
 
-// defines a new activation function for given domain, its execution always fallbacks to JS engine, 
+// defines a new activation function for given domain, its execution always fallbacks to JS engine
 WebAI.defineCustomActivation("activation_name", "activation_domain", function activation(activationInput) {
   // ...
   return activationOutput;
