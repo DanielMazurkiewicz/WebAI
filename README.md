@@ -376,7 +376,7 @@ WebAI.defineCustomOperation( // throws error if operation already exist
         params: [":param1", ">param2", "paramN"] // JSON model properties that should be passed 
                                                     // as arguments to this operation
 
-          // if modelParam name starts with colon ":" then it is assumed a pipe end or an 
+          // if param name starts with colon ":" then it is assumed a pipe end or an 
           // array type argument (at JSON model - unique string name of pipe end or array 
           // or typed array - expected), if numeric type value provided at json model then 
           // assumed that expected number of values should be found in setup.data property 
@@ -393,26 +393,26 @@ WebAI.defineCustomOperation( // throws error if operation already exist
           //    but if in defaults "count" is not provided then it throws error (this is a 
           //    guarantee that output size is known without running NN operations)
 
-          // All non reserved modelParams that will use existing model properties names (mentioned
+          // All non reserved params that will use existing model properties names (mentioned
           // in "Core properties summary") will pass their value directly to operation function
 
-          // For non numeric and non boolean modelParams prefix ">" should be used
+          // For non numeric and non boolean params prefix ">" should be used
           // (those will be not stored in "setup.data" and if not provided "undefined"
           // will be passed to operation function). Prefix doesn't prevent providing and using
           // numerics or booleans, it just prevents storing parameter in setup.data
 
-          // All numeric and boolean modelParams not provided specifically in model will be 
+          // All numeric and boolean params not provided specifically in model will be 
           // expected to be placed in models property "setup.data" in order of appearance without 
           // duplicates (and if no "setup" provided then initialized with random values)
           // (for booleans: false: 0; true: !=0)
 
-          // It is possible to pass same modelParam more than once to an operation
+          // It is possible to pass same param more than once to an operation
 
           // Some example compiling all above:
           //    [">someStringOrObjectTypeParameter", ":input", ":additionalPipeEnd", "activation", 
           //                       ":input", "activationStr", "someNumericOrBooleanCustomParameter"]
 
-        defaults: {
+        defaults: { // assigning defaults is performed only once - on NN object creation
           param1: { // if object provided then assumed "calculated" default value, otherwise given
                     // value will be used as default
 
@@ -420,7 +420,6 @@ WebAI.defineCustomOperation( // throws error if operation already exist
                                                       // in modelParams
                                                       // For pipe end type parameters only length is
                                                       // passed
-                                                      
 
             calc: (p1, p2, p3) => { // function that can calculate default value
               return 10; // It means that if no pipe will connect to that parameter it will use 10 
