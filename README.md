@@ -184,6 +184,8 @@ ai.moveTo(executionUnit) // moves ai (also if in ongoing operation - train, veri
   {
     dataTypeAs: "base64",   // available options: base64, array
     optimize: "minify",     // moves all possible parameters to setup.data, mangles all names, removes unused parts
+                            // combines all NNs into one (if "net" operation used)
+
     layers: {               // if provided - exports only selected layers/selected range of layers as NN JSON object
                             // allows to make autoencoder NNs or to split NNs so they could be runned in chain of 
                             // separate sub-NNs across multiple execution units (eg. first 2 NN layers on CPU, 
