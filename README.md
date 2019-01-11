@@ -323,12 +323,17 @@ WebAI.getOperations(operationsQuery, executionUnit)
       would return object with operation functions:
       {
         ...
-        fusedMatMul(a, b, transposeA, transposeB, bias, activationFn) {}
+        fusedMatMul(a, b, transposeA, transposeB, bias, activationFn) {},
+        someStatefullOperation(a, b, state) {},
         ...
       }
     */
     const A = [/* ... */];
     const B = [/* ... */];
+
+    const state1 = webAiOperations.someStatefullOperation.getNewState(someParameters);
+    const someProduct = webAiOperations.someStatefullOperation(A, B, state1);
+
     const result = webAiOperations.fusedMatMul(A, B, true, true, 0.0, "tanh");
 
   })
@@ -372,6 +377,12 @@ WebAI.defineCustomOperation( // throws error if operation already exist
       name: "name_of_operation",
       domain: "some_existing_domain_name",
       dataType: "fp32",
+      initState: (state = {}) => { state.hello = true; return state;},  
+                                                // if initState is defined, then this is a
+                                                // statefull operation
+                                                // this method has to be called and result passed
+                                                // manually if operation used directly from API
+
       model: {
         params: [":param1", ">param2", "paramN"] // JSON model properties that should be passed 
                                                     // as arguments to this operation
@@ -392,6 +403,7 @@ WebAI.defineCustomOperation( // throws error if operation already exist
           //    If no count provided in model then property "count" from "defaults" will be used,
           //    but if in defaults "count" is not provided then it throws error (this is a 
           //    guarantee that output size is known without running NN operations)
+          // "state" is a reserved word for layer/pipe state
 
           // All non reserved params that will use existing model properties names (mentioned
           // in "Core properties summary") will pass their value directly to operation function
@@ -400,6 +412,7 @@ WebAI.defineCustomOperation( // throws error if operation already exist
           // (those will be not stored in "setup.data" and if not provided "undefined"
           // will be passed to operation function). Prefix doesn't prevent providing and using
           // numerics or booleans, it just prevents storing parameter in setup.data
+          
 
           // All numeric and boolean params not provided specifically in model will be 
           // expected to be placed in models property "setup.data" in order of appearance without 
@@ -410,13 +423,13 @@ WebAI.defineCustomOperation( // throws error if operation already exist
 
           // Some example compiling all above:
           //    [">someStringOrObjectTypeParameter", ":input", ":additionalPipeEnd", "activation", 
-          //                       ":input", "activationStr", "someNumericOrBooleanCustomParameter"]
+          //                "state", ":input", "activationStr", "someNumericOrBooleanCustomParameter"]
 
         defaults: { // assigning defaults is performed only once - on NN object creation
           param1: { // if object provided then assumed "calculated" default value, otherwise given
                     // value will be used as default
 
-            params: ["param1", "param2", "paramN"]    // Calculation can use only parameters defined 
+            params: ["param1", "param2", "paramN"],   // Calculation can use only parameters defined 
                                                       // in modelParams
                                                       // For pipe end type parameters only length is
                                                       // passed
@@ -428,7 +441,9 @@ WebAI.defineCustomOperation( // throws error if operation already exist
             }
           },
           param2: "hello webml"
-        }
+        },
+        initStateParams: ["param1","param2","paramN"] // same behavior as "params" in "defaults"
+                                                      // fires "initState" method on NN reset
       }
 
     }
