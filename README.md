@@ -218,7 +218,7 @@ ai.toObject(options) // should wors similarly to above, but return JSON object
 
  Core properties summary:
   - **domain** property defines a domain for operations (??and activation functions??) in ml model, default: "core"
-  - **name** property defines a name for layer or pipe
+  - **name** property defines a name for layer or pipe, all names must be unique
   - **type** property defines a type of operator for given layer or pipe, available options for core ml: neurons, lstm-n, lstm-p, gru. Where "n" stands for "normalized", and "p" for "pseudo". Default: "neurons"
   - **activation** property defines an activation function for neurons in given layer or pipe
   - **pipes** property defines a list of pipes for given layer
@@ -542,6 +542,13 @@ WebAI.defineCustomOperation(
     return result;
   }
 );
+
+
+//  =======================================================================================
+//         And "voila" - this is how custom operations could be used from "model":
+//  =======================================================================================
+
+
 const ai = new WebAI.NeuralNetwork({
   domain: 'custom-domain',
   dataType: 'fp32',
