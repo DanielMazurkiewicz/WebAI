@@ -183,7 +183,7 @@ ai.moveTo(executionUnit) // moves ai (also if in ongoing operation - train, veri
   options example:
   {
     dataTypeAs: "base64",   // available options: base64, array
-    optimize: "minify",     // moves all possible parameters to setup.data
+    optimize: "minify",     // moves all possible parameters to setup.data, mangles all names, removes unused parts
     layers: {               // if provided - exports only selected layers/selected range of layers as NN JSON object
                             // allows to make autoencoder NNs or to split NNs so they could be runned in chain of 
                             // separate sub-NNs across multiple execution units (eg. first 2 NN layers on CPU, 
@@ -207,8 +207,10 @@ ai.toObject(options) // should wors similarly to above, but return JSON object
 
 ## Advanced neural networks architectures
 
+ - First layer and pipes located on first layer are always considered an "input" type of operation, that type can't be changed or used on other layers.
  - For any sort of recurrent NN "pipes" could be used
  - Pipes could direct neuron outputs in both directions (forward and backward) - also to current layer/pipe as well
+ - Piping to same or above layer means that outputs of that particular pipe/layer will be available there in next run
  - Activation function and other "future" options can be modified for every layer and every pipe in a layer
  - Pipes could also be assigned names
  - Layer could be build out of pipes only (as an option)
@@ -384,11 +386,11 @@ WebAI.defineCustomOperation( // throws error if operation already exist
           // "activation" is a reserved name for passing activation function to custom operation
           // "activationStr" is a reserved name for passing name of activation function
           // "count" is a reserved name for passing number of outputs from operation, 
-          //    despite of custom operation output size, output will be always trimmed to 
-          //    "count" size and filled with zeroes if necesarry.
-          //    if no count provided in model default will be used, but if default not provided
-          //    then it throws error (this is a guarantee that output size is known
-          //    without running NN operations)
+          //    Despite of custom operation output size, output will be always trimmed to 
+          //    "count" size and filled with zeroes if necessary.
+          //    If no count provided in model then property "count" from "defaults" will be used,
+          //    but if in defaults "count" is not provided then it throws error (this is a 
+          //    guarantee that output size is known without running NN operations)
 
           // All non reserved modelParams that will use existing model properties names (mentioned
           // in "Core properties summary") will pass their value directly to operation function
@@ -409,7 +411,7 @@ WebAI.defineCustomOperation( // throws error if operation already exist
           //    [">someStringOrObjectTypeParameter", ":input", ":additionalPipeEnd", "activation", 
           //                       ":input", "activationStr", "someNumericOrBooleanCustomParameter"]
 
-        defaultValues: {
+        defaults: {
           param1: { // if object provided then assumed "calculated" default value, otherwise given
                     // value will be used as default
 
@@ -513,7 +515,7 @@ WebAI.defineCustomOperation(
     let result = [];
     for (let i = 0; i < input.length; i++) {
       if (input[i] < valueToCompareWith) {
-        result[i] = input[i]
+        result[i] = input[i];
       } else {
         result[i] = 0;
       }
