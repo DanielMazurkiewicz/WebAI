@@ -377,11 +377,9 @@ WebAI.defineCustomOperation( // throws error if operation already exist
       name: "name_of_operation",
       domain: "some_existing_domain_name",
       dataType: "fp32",
-      initState: (state = {}) => { state.hello = true; return state;},  
+      initState: (someParams) => { const state = {}; state.hello = true; return state;},  
                                                 // if initState is defined, then this is a
                                                 // statefull operation
-                                                // this method has to be called and result passed
-                                                // manually if operation used directly from API
 
       model: {
         params: [":param1", ">param2", "paramN"] // JSON model properties that should be passed 
@@ -430,7 +428,7 @@ WebAI.defineCustomOperation( // throws error if operation already exist
                     // value will be used as default
 
             params: ["param1", "param2", "paramN"],   // Calculation can use only parameters defined 
-                                                      // in modelParams
+                                                      // in params
                                                       // For pipe end type parameters only length is
                                                       // passed
 
@@ -442,8 +440,9 @@ WebAI.defineCustomOperation( // throws error if operation already exist
           },
           param2: "hello webml"
         },
-        initStateParams: ["param1","param2","paramN"] // same behavior as "params" in "defaults"
-                                                      // fires "initState" method on NN reset
+        initStateParams: ["param1","param2","paramN"] // fires "initState" method on NN reset
+                                                      // with given parameters
+                                                      // same behavior as "params" in "defaults"
       }
 
     }
