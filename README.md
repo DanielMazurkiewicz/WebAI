@@ -384,7 +384,8 @@ WebAI.defineCustomOperation( // throws error if operation already exist
           //    despite of custom operation output size, output will be always trimmed to 
           //    "count" size and filled with zeroes if necesarry.
           //    if no count provided in model default will be used, but if default not provided
-          //    then it throws error
+          //    then it throws error (this is a guarantee that output size is known
+          //    without running NN operations)
 
           // All non reserved modelParams that will use existing model properties names (mentioned
           // in "Core properties summary") will pass their value directly to operation function
@@ -467,7 +468,15 @@ WebAI.defineCustomOperation(
     name: "addIfAbove",
     domain: "custom-domain",
     dataType: "fp32",
-    modelParams: [":a", ":b", "value"] // pipe type parameter a and b, numeric or boolean parameter value
+    model: {
+      params: [":a", ":b", "value"], // pipe type parameter a and b, numeric or boolean parameter value
+      defaults: {
+        count: {
+          params: ["a", "b"],
+          calc: (lengthOfA, lengthOfB) => lengthOfA > lengthOfB ? lengthOfA : lengthOfB;
+        }
+      }
+    }
   },
   (a, b, valueToCompareWith) => {
     if (a.length !== b.length) throw new Error('inputs have to have same lengths')
@@ -487,7 +496,15 @@ WebAI.defineCustomOperation(
     name: "onlyLowerThan",
     domain: "custom-domain",
     dataType: "fp32",
-    modelParams: [":input", "value"]
+    model: {
+      params: [":input", "value"],
+      defaults: {
+        count: {
+          params: ["input"],
+          calc: length => length
+        }
+      }
+    }
   },
   (input, valueToCompareWith) => {
     let result = [];
