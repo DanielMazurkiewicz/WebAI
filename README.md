@@ -305,6 +305,52 @@ const ai = new WebAI.NeuralNetwork({
 
 ```
 
+## Simple example of combining bigger NN out of smaller NNs
+```javascript
+
+const smallerNN1 = {
+  dataType: 'u8',
+  layers: [8, 8, 8],
+  setup: {
+    data: '',
+    instructions: ''
+  }
+}
+
+const smallerNN2 = {
+  dataType: 'u8',
+  layers: [8, 8, 8],
+  setup: {
+    data: '',
+    instructions: ''
+  }
+}
+
+
+const ai = new WebAI.NeuralNetwork({
+  dataType: 'u8',
+  layers: [
+    8,
+    8,
+    {
+      type: "net",    // reserved operation name for combining neural networks
+                      // can be used also at input layer
+
+      net: smallerNN1 // will throw error if different domains or data types
+                      // "net" operation has its own names context for piping
+    },
+    {
+      type: "net",
+      net: smallerNN2
+    }
+
+  ],
+
+}, executionUnit);
+
+```
+
+
 ## API for atomic ML operations
 
 ```javascript
