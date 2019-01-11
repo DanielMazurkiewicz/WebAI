@@ -182,7 +182,8 @@ ai.moveTo(executionUnit) // moves ai (also if in ongoing operation - train, veri
 /*
   options example:
   {
-    dataTypeAs: "base64",   // available options: base64, array, ?typedArray?
+    dataTypeAs: "base64",   // available options: base64, array
+    optimize: "minify",     // moves all possible parameters to setup.data
     layers: {               // if provided - exports only selected layers/selected range of layers as NN JSON object
                             // allows to make autoencoder NNs or to split NNs so they could be runned in chain of 
                             // separate sub-NNs across multiple execution units (eg. first 2 NN layers on CPU, 
@@ -192,12 +193,14 @@ ai.moveTo(executionUnit) // moves ai (also if in ongoing operation - train, veri
       to: "output"
     }
   }
-  returns always fully functional NN model in JSON object
+  returns always fully functional NN model in JSON string
 */
 ai.toJson(options)
   .then(json => {
     // json should contain all necesarry data to instantiate new WebAI.NeuralNetwork
   })
+
+ai.toObject(options) // should wors similarly to above, but return JSON object
 
 
 ```
@@ -582,6 +585,8 @@ const ai = new WebAI.NeuralNetwork({
 ## Further things to keep in mind
 
 There could be also designed standardized JSON format for simple normalizations/denormalizations of numbers and enumerations
+
+Possibility to add custom training algorithms to domains
 
 ## Links
 https://towardsdatascience.com/a-deeper-understanding-of-nnets-part-1-cnns-263a6e3ac61
