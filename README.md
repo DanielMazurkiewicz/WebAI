@@ -219,6 +219,7 @@ ai.toObject(options) // should wors similarly to above, but return JSON object
  - Pipes on first layer adds additional inputs
  - Pipes without property "to" pipe simply to next layer
  - If multiple pipes pipe to same pipe end then all of their outputs are joined together in order of appearance in JSON model
+ - If piping to fixed size pipe end then size of piping layer or pipe must equal to size of pipe end, otherwise error thrown
 
  Core properties summary:
   - **domain** property defines a domain for operations (??and activation functions??) in ml model, default: "core"
