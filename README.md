@@ -226,7 +226,7 @@ ai.toObject(options) // should wors similarly to above, but return JSON object
   - **pipes** property defines a list of pipes for given layer
   - **connections** property defines a way that neurons from given pipe/layer are connected to predecessing layers/pipes
   - **count** property defines how many inputs/neurons/outputs is in layer/pipe operation
-  - **to** property defines where to pipe neuron outputs(or data inputs if on input layer) of current layer/pipe
+  - **to** property defines where to pipe neuron/operation outputs(or data inputs if on input layer) of current layer/pipe
   - **history** property defines additional outputs of current layer/pipe build out of values of neuron/operation outputs (or input data if on input layer) from given number of previous NN runs
   - **historyTo** property defines where to pipe previous NN runs values of neuron/operation outputs(or data inputs if on input layer) from current layer/pipe
 
