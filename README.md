@@ -380,7 +380,8 @@ WebAI.defineCustomOperation( // throws error if operation already exist
           // array type argument (at JSON model - unique string name of pipe end or array 
           // or typed array - expected), if numeric type value provided at json model then 
           // assumed that expected number of values should be found in setup.data property 
-          // of model, if parameter is not provided at json model, then 
+          // of model, if parameter is not provided at json model, then value is evaluated
+          // from "defaults" property, if not in defaults then throws error
 
           // ":input" is a reserved name for default pipe type parameter
           // "activation" is a reserved name for passing activation function to custom operation
