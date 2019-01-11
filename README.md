@@ -68,18 +68,25 @@ WebAI.getCapabilities(optionalCapabilitiesQueryObject)
 
 const ai = new WebAI.NeuralNetwork({ // simple NN example object
   // when no object provided to constructor or missing properties, defaults should be assumed
+  domain: 'core',     // can be skipped because it is default domain
 
-  dataType: 'fp16',
+  dataType: 'fp16',   //default data type could be fp32
   activation: "tanh", // available options: identity, binary, tanh, isrlu, relu, elu, softclip, sin, sinc, gauss
                       // see https://www.wikiwand.com/en/Activation_function
 
   layers: [8, 14, 8], // [ inputs, ... hidden ... , outputs ]
 
-  setupData: '' // weights, biases ... - field optional,
-                // if string then base64 encoded setup data expected, 
-                // can be also an array or typed array (of dataType),
-                // if field not provided random values assumed
+  setup: {    // field optional
 
+    data: '', // weights, biases, and other parameters ...
+              // if string then base64 encoded setup data expected, 
+              // can be also an array or typed array (of dataType),
+              // if field not provided random values assumed
+
+    instructions: '' // TBD: instructions that will help assigning appropriate data from setup.data
+                     // to appropriate layers/pipes/parameters, 
+                     // base64 encoded string or array or UInt32 typed array assumed here
+  }
 }, executionUnit);  // execution unit parameter could be provided as an array of execution units, 
                     // if so then JS engine should decide on what execution unit NN tasks will be executed 
                     // and it doesn't have to be same execution unit for all tasks
@@ -138,7 +145,8 @@ const data = ai.prepareData(normalizeInput, normalizeOutput, [
 
 
 
-
+// training can be performed only on native operations and activations of "core" domain
+// otherwise throws error
 ai.train(data, options) // data can be a binary stream or typed array
   /*
     example options object could look like that:
@@ -203,18 +211,19 @@ ai.toJson(options)
  - Layer could be build out of pipes only (as an option)
  - Pipes on first layer adds additional inputs
  - Pipes without property "to" pipe simply to next layer
+ - If multiple pipes pipe to same pipe end then all of their outputs are joined together in order of appearance in JSON model
 
- Properties summary:
+ Core properties summary:
   - **domain** property defines a domain for operations (??and activation functions??) in ml model, default: "core"
   - **name** property defines a name for layer or pipe
-  - **type** property defines a type of operator for given layer or pipe, available options for core ml: neurons, lstm-n, lstm-p, gru. Where "n" stands for "normalized", and "p" for "pseudo". Extended operations sets might require defining aditional properties.
+  - **type** property defines a type of operator for given layer or pipe, available options for core ml: neurons, lstm-n, lstm-p, gru. Where "n" stands for "normalized", and "p" for "pseudo". Default: "neurons"
   - **activation** property defines an activation function for neurons in given layer or pipe
   - **pipes** property defines a list of pipes for given layer
-  - **connections** property defines a way that nurons from given pipe/layer are connected to predecessing neurons
-  - **count** property defines how many inputs/neurons/outputs is in layer/pipe
+  - **connections** property defines a way that neurons from given pipe/layer are connected to predecessing layers/pipes
+  - **count** property defines how many inputs/neurons/outputs is in layer/pipe operation
   - **to** property defines where to pipe neuron outputs(or data inputs if on input layer) of current layer/pipe
-  - **history** property defines additional outputs of current layer/pipe build out of values of neuron outputs (or input data if on input layer) from given number of previous NN runs
-  - **historyTo** property defines where to pipe previous NN runs values of neuron outputs(or data inputs if on input layer) from current layer/pipe
+  - **history** property defines additional outputs of current layer/pipe build out of values of neuron/operation outputs (or input data if on input layer) from given number of previous NN runs
+  - **historyTo** property defines where to pipe previous NN runs values of neuron/operation outputs(or data inputs if on input layer) from current layer/pipe
 
 ```javascript
 const ai = new WebAI.NeuralNetwork({
@@ -283,57 +292,275 @@ const ai = new WebAI.NeuralNetwork({
     },
     18, // regular layer with 18 neurons
     3   // 3 neurons output layer, last layer always is an output layer
+        // equivalent to: {count: 3} and {type: "neurons", count: 3} and {connections: "all-to-all", type: "neurons", count: 3}
+        //       and and {connections: "all-to-all", type: "neurons", activation: "tanh", count: 3}   :-)
   ],
 
 }, executionUnit);
 
 ```
 
-## API for low level operations
+## API for atomic ML operations
 
 ```javascript
 
-WebAI.getOperations("operations_domain eg: 'core'", executionUnit)
-  .then(webml => {
+WebAI.getOperations(operationsQuery, executionUnit)
+  /*
+    where operationsQuery could look like this:
+    {
+      domain: "operations_domain eg: 'core'"
+      dataType: "fp16"
+    }
+  */
+
+  .then(webAiOperations => {
     /*
       would return object with operation functions:
       {
         ...
-        fusedMatMul(a, b, transposeA, transposeB, bias?, activationFn?) {}
+        fusedMatMul(a, b, transposeA, transposeB, bias, activationFn) {}
+        ...
+      }
+    */
+    const A = [/* ... */];
+    const B = [/* ... */];
+    const result = webAiOperations.fusedMatMul(A, B, true, true, 0.0, "tanh");
+
+  })
+
+
+WebAI.getActivations(activationsQuery, executionUnit)
+  /*
+    where activationsQuery could look like this:
+    {
+      domain: "operations_domain eg: 'core'"
+      dataType: "fp16"
+    }
+  */
+
+  .then(webAiActivations => {
+    /*
+      would return object with activation functions:
+      {
+        ...
+        tanh(input) {}
         ...
       }
     */
 
-    webml.fusedMatMul(a, b, transposeA, transposeB, bias?, activationFn?);
+    const result = webAiActivations.tanh(0);
 
   })
 
 
 // custom domains will be available only for cpu execution units.
-WebAI.defineCustomDomain("domain_name");
+WebAI.defineCustomDomain("domain_name"); // throws error when domain already exist
 
 
 // defines a new operation for given domain, operation execution always fallbacks to JS engine, 
 // no matter of what execution unit is used
-WebAI.defineCustomOperation(
-  "operation_name", 
-  "operation_domain", 
-  function operation(operation_params) {
-  // js code itself can make use of any existing API (including webGPU and webgl)
+WebAI.defineCustomOperation( // throws error if operation already exist
+  operationDescriptionObject,
+  /*
+    example of operationDescriptionObject:
+    {
+      name: "name_of_operation",
+      domain: "some_existing_domain_name",
+      dataType: "fp32",
+      model: {
+        params: [":param1", ">param2", "paramN"] // JSON model properties that should be passed 
+                                                    // as arguments to this operation
 
+          // if modelParam name starts with colon ":" then it is assumed a pipe end or an 
+          // array type argument (at JSON model - unique string name of pipe end or array 
+          // or typed array - expected), if numeric type value provided at json model then 
+          // assumed that expected number of values should be found in setup.data property 
+          // of model, if parameter is not provided at json model, then 
+
+          // ":input" is a reserved name for default pipe type parameter
+          // "activation" is a reserved name for passing activation function to custom operation
+          // "activationStr" is a reserved name for passing name of activation function
+          // "count" is a reserved name for passing number of outputs from operation, 
+          //    despite of custom operation output size, output will be always trimmed to 
+          //    "count" size and filled with zeroes if necesarry.
+          //    if no count provided in model default will be used, but if default not provided
+          //    then it throws error
+
+          // All non reserved modelParams that will use existing model properties names (mentioned
+          // in "Core properties summary") will pass their value directly to operation function
+
+          // For non numeric and non boolean modelParams prefix ">" should be used
+          // (those will be not stored in "setup.data" and if not provided "undefined"
+          // will be passed to operation function). Prefix doesn't prevent providing and using
+          // numerics or booleans, it just prevents storing parameter in setup.data
+
+          // All numeric and boolean modelParams not provided specifically in model will be 
+          // expected to be placed in models property "setup.data" in order of appearance without 
+          // duplicates (and if no "setup" provided then initialized with random values)
+          // (for booleans: false: 0; true: !=0)
+
+          // It is possible to pass same modelParam more than once to an operation
+
+          // Some example compiling all above:
+          //    [">someStringOrObjectTypeParameter", ":input", ":additionalPipeEnd", "activation", 
+          //                       ":input", "activationStr", "someNumericOrBooleanCustomParameter"]
+
+        defaultValues: {
+          param1: { // if object provided then assumed "calculated" default value, otherwise given
+                    // value will be used as default
+
+            params: ["param1", "param2", "paramN"]    // Calculation can use only parameters defined 
+                                                      // in modelParams
+                                                      // For pipe end type parameters only length is
+                                                      // passed
+                                                      
+
+            calc: (p1, p2, p3) => { // function that can calculate default value
+              return 10; // It means that if no pipe will connect to that parameter it will use 10 
+                         // random data from setup.data (as numeric values in pipe ends means that
+                         // specific number of data in setup.data should be expected
+            }
+          },
+          param2: "hello webml"
+        }
+      }
+
+    }
+  */
+
+  function operation_itself(operation_params) {
+    // js code itself can make use of any existing API (including webgpu, webgl, webml)
   },
-  ["parameter1", "parameter2", "parameterN"], // JSON model properties that should be passed as arguments to this operation
-  // there should be a list of names reserved for special purpouses
 );
 
+
+
 // defines a new activation function for given domain, its execution always fallbacks to JS engine
-WebAI.defineCustomActivation("activation_name", "activation_domain", function activation(activationInput) {
-  // ...
-  return activationOutput;
-});
+WebAI.defineCustomActivation(
+  activationDescriptionObject,
+  /*
+    example of activationDescriptionObject:
+    {
+      name: "name_of_activation_function",
+      domain: "some_existing_domain_name",
+      dataType: "fp32",
+    }
+  */
+
+  function some_activation(activationInput) {
+    // ...
+    return activationOutput;
+  }
+);
 
 
 ```
+
+
+## Example with custom operations on model level
+
+```javascript
+
+WebAI.defineCustomDomain("custom-domain");
+WebAI.defineCustomOperation(
+  {
+    name: "addIfAbove",
+    domain: "custom-domain",
+    dataType: "fp32",
+    modelParams: [":a", ":b", "value"] // pipe type parameter a and b, numeric or boolean parameter value
+  },
+  (a, b, valueToCompareWith) => {
+    if (a.length !== b.length) throw new Error('inputs have to have same lengths')
+    let result = [];
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] > valueToCompareWith && b[i] > valueToCompareWith) {
+        result[i] = a[i] + b[i];
+      } else {
+        result[i] = 0;
+      }
+    }
+    return result;
+  }
+);
+WebAI.defineCustomOperation(
+  {
+    name: "onlyLowerThan",
+    domain: "custom-domain",
+    dataType: "fp32",
+    modelParams: [":input", "value"]
+  },
+  (input, valueToCompareWith) => {
+    let result = [];
+    for (let i = 0; i < input.length; i++) {
+      if (input[i] < valueToCompareWith) {
+        result[i] = input[i]
+      } else {
+        result[i] = 0;
+      }
+    }
+    return result;
+  }
+);
+WebAI.defineCustomOperation(
+  {
+    name: "neurons",
+    domain: "custom-domain",
+    dataType: "fp32",
+    model: {
+      params: [":input", ":weights", "bias", "activation", "connections", "count"],
+      defaults: {
+        weights: {
+          params: ["input", "count", "connections"],
+          calc: (inputsNumber, neuronsNumber, connectionsType) => inputsNumber * neuronsNumber;
+        }
+      }
+    }
+  },
+  (inputs, weights, bias, activationFunction, connectionsType, neuronsCount) => {
+    let result = new Float32Array(neuronsCount);
+    // some code for neuron layers that calls activationFunction( ) for each neuron
+    return result;
+  }
+);
+const ai = new WebAI.NeuralNetwork({
+  domain: 'custom-domain',
+  dataType: 'fp32',
+
+  layers: [
+    {
+      name: "input",                  // could be skipped here, but placed it for readibility of code
+      pipes: [
+        {
+          name: "A",                  // could be skipped here, but placed it for readibility of code
+          count: 30,
+          to: ['addIfAboveInputA'] 
+        },
+        {
+          name: "B",                  // could be skipped here, but placed it for readibility of code
+          count: 30
+          to: ['addIfAboveInputB'] 
+        }
+      ]
+    },
+    {
+      // operation here doesn't support default input, so naming this layer wouldn't allow pipes/layers to acces it by layer name
+      type: 'addIfAbove',
+      a: 'addIfAboveInputA',          // assigned unique name to parameter A of addIfAbove custom operation
+      b: 'addIfAboveInputB',          // assigned unique name to parameter B of addIfAbove custom operation
+      value: 0                        // if this property wouldn't be placed here its value would be expected in "setup.data" field of model
+    },
+    {
+      type: 'onlyLowerThan',
+      value: 50
+    },
+    30 // layer of "neuron" type operation with 30 neurons and connections type "every-to-every"
+  ]
+
+}, cpuExecutionUnit); 
+
+
+```
+
 
 ## Further things to keep in mind
 
