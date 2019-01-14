@@ -15,6 +15,26 @@ API proposal for web based neural networks.
     * easily used by visual neural network designing/training tools
 
 
+## TLDR;
+
+ * WebAI.getCapabilities(optionalCapabilitiesQueryObject)
+ * const ai = new WebAI.NeuralNetwork(nnModelObject, executionUnit)
+ * ai.prepareData(normalizeInput, normalizeOutput, arrayOfData)
+ * ai.train(data, options)
+ * ai.stopTraining()
+ * ai.verify(data, options)
+ * ai.run(input, normalizeInput, denormalizeOutput)
+ * ai.reset()
+ * ai.moveTo(executionUnit)
+ * ai.toJson(options)
+ * ai.toObject(options)
+ * WebAI.getOperations(operationsQuery, executionUnit)
+ * WebAI.getActivations(activationsQuery, executionUnit)
+ * WebAI.defineCustomDomain(domainName);
+ * WebAI.defineCustomOperation(operationDescriptionObject, operation)
+ * WebAI.defineCustomActivation(activationDescriptionObject, activation)
+
+
 ## Javascript example
 
 This is API proposal - just something to start with standardization process.
