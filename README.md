@@ -18,6 +18,11 @@ API proposal for web based neural networks.
 ## TLDR;
 
  * WebAI.getCapabilities(optionalCapabilitiesQueryObject)
+ * WebAI.getOperations(operationsQuery, executionUnit)
+ * WebAI.getActivations(activationsQuery, executionUnit)
+ * WebAI.defineCustomDomain(domainName);
+ * WebAI.defineCustomOperation(operationDescriptionObject, operation)
+ * WebAI.defineCustomActivation(activationDescriptionObject, activation)
  * const ai = new WebAI.NeuralNetwork(nnModelObject, executionUnit)
  * ai.prepareData(normalizeInput, normalizeOutput, arrayOfData)
  * ai.train(data, options)
@@ -28,11 +33,6 @@ API proposal for web based neural networks.
  * ai.moveTo(executionUnit)
  * ai.toJson(options)
  * ai.toObject(options)
- * WebAI.getOperations(operationsQuery, executionUnit)
- * WebAI.getActivations(activationsQuery, executionUnit)
- * WebAI.defineCustomDomain(domainName);
- * WebAI.defineCustomOperation(operationDescriptionObject, operation)
- * WebAI.defineCustomActivation(activationDescriptionObject, activation)
 
 
 ## Javascript example
