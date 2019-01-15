@@ -141,8 +141,13 @@ ai.train(data, options) // data can be a binary stream or typed array
   /*
     example options object could look like that:
     {
-      type: "back-propagation"
-      ... -  and some backpropagation training detailed options
+      type: "back-propagation",
+      toSkip: ["names_of_pipes_or_layers"],  // optional and if provided performs training without changing data from given layers
+                                             // or pipes
+
+      toTrain: ["names_of_pipes_or_layers"], // optional and if provided performs training only on given layers or pipes
+
+      ... -  and some other backpropagation training detailed options
     }
   */
   .then(trainingInfo => {
@@ -170,16 +175,20 @@ ai.reset() // resets any historical data inside NN (for NN's with recurences or 
 /*
   options example:
   {
-    dataTypeAs: "base64",   // available options: base64, array
+    setupDataAs: "base64",  // available options: base64, array
     optimize: "minify",     // moves all possible parameters to setup.data, mangles all names, removes unused parts
-                            // combines all NNs into one (if "net" operation used)
+                            // combines all NNs into one (if "net" operation used), removes properties with default
+                            // values
+                            // if property not provided then returns in exact form as was provided
+                            // if property is "pretty" moves all possible properties values from "setup" to layers 
+                            // and pipes
 
     layers: {               // if provided - exports only selected layers/selected range of layers as NN JSON object
                             // allows to make autoencoder NNs or to split NNs so they could be runned in chain of 
-                            // separate sub-NNs across multiple execution units (eg. first 2 NN layers on CPU, 
-                            // next 5 on GPU0 and another 4 on GPU1)
-                            // should throw an error if there is any pipe that would make splitting NN impossible
-      from: "input"
+                            // separate sub-NNs across multiple execution units
+                            // should throw an error if there is any layer or pipe that would make splitting NN
+                            // impossible
+      from: "input",
       to: "output"
     }
   }
