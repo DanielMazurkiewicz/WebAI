@@ -17,20 +17,19 @@ API proposal for web based neural networks.
 
 ## TLDR;
 
- * WebAI.getCapabilities(optionalCapabilitiesQueryObject)
- * WebAI.getOperations(operationsQuery, executionUnit)
- * WebAI.getActivations(activationsQuery, executionUnit)
+ * WebAI.getCapabilities()
+ * WebAI.getOperations(operationsQuery)
+ * WebAI.getActivations(activationsQuery)
  * WebAI.defineCustomDomain(domainName);
  * WebAI.defineCustomOperation(operationDescriptionObject, operation)
  * WebAI.defineCustomActivation(activationDescriptionObject, activation)
- * const ai = new WebAI.NeuralNetwork(nnModelObject, executionUnit)
+ * const ai = new WebAI.NeuralNetwork(nnModelObject)
  * ai.prepareData(normalizeInput, normalizeOutput, arrayOfData)
  * ai.train(data, options)
  * ai.stopTraining()
  * ai.verify(data, options)
  * ai.run(input, normalizeInput, denormalizeOutput)
  * ai.reset()
- * ai.moveTo(executionUnit)
  * ai.toJson(options)
  * ai.toObject(options)
 
@@ -45,41 +44,11 @@ WebAI.getCapabilities(optionalCapabilitiesQueryObject)
   .then(capabilities => {
     /*
       capabilities object could look like that:
-
       {
-        executionUnits: [
-          {
-            id: "CPU0", //doesn't have to represent real CPU number, NN just have to be runned on separate cpu
-            type: "cpu",
-            domains: ['core', 'http://w3c/tensorflow-2018.12', 'http://w3c/tensorflow-2019.06'],
-            dataTypes: ['fp16', 'fp32', 'fp64', 'u8', 'u16', 'u32', 'u64'] //data types that neural network uses to work
-            cue: 0  // number of machine learning tasks awaiting for execution
-                    // there is no sense of executing in parallel NN tasks (run, train, valudate) on single execution unit
-                    // every site should have own cue for every execution unit
-                    // currently opened/visible site/tab should have a priority on executing NN tasks from cue over other non visible sites/tabs
-          },
-          {
-            id: "GPU0", //Vulkan/SPIR-V, OpenCL, GLSL, CUDA
-            type: "gpu",
-            domains: ['core', 'http://w3c/tensorflow-2018.12', 'http://w3c/tensorflow-2019.06'],
-            dataTypes: ['fp16', 'fp32', 'fp64', 'u8', 'u16', 'u32', 'u64'] //data types that neural network uses to work
-            cue: 10
-          },
-          {
-            id: "DSP0",
-            type: "dsp",
-            domains: ['core', 'http://w3c/tensorflow-2018.12', 'http://w3c/tensorflow-2019.06'],
-            dataTypes: ['fp16', 'fp32', 'fp64', 'u8', 'u16', 'u32', 'u64'] //data types that neural network uses to work
-            cue: 10
-          },
-          {
-            id: "FPGA0",
-            type: "fpga",
-            domains: ['core', 'http://w3c/tensorflow-2018.12', 'http://w3c/tensorflow-2019.06'],
-            dataTypes: ['fp16', 'fp32', 'fp64', 'u8', 'u16', 'u32', 'u64'] //data types that neural network uses to work
-            cue: 10
-          }
-        ]
+          domains: ['core', 'http://w3c/tensorflow-2018.12', 'http://w3c/tensorflow-2019.06', 'http://w3c/onnx-2019.06'],
+          dataTypes: ['fp16', 'fp32', 'fp64', 'u8', 'u16', 'u32', 'u64'] // data types that neural network can use to work
+                                                                         // determined by hardware and software implementations
+                                                                         // of all hardware devices available to browser
       }
     */
   });
@@ -88,9 +57,12 @@ WebAI.getCapabilities(optionalCapabilitiesQueryObject)
 
 const ai = new WebAI.NeuralNetwork({ // simple NN example object
   // when no object provided to constructor or missing properties, defaults should be assumed
-  domain: 'core',     // can be skipped because it is default domain
+  domain: 'core',     // can be skipped because it is default domain, if given domain is not supported then 
+                      // throws error
 
-  dataType: 'fp16',   //default data type could be fp32
+  dataType: 'fp16',   // default data type could be fp32, if given datatype is not supported then throws error
+  minMops: 300,       // optional field, if provided informs Javascript about expected "millions of operations per second"
+                      //  on given data type (helps to determine hardware device to run NN)
   activation: "tanh", // available options: identity, binary, tanh, isrlu, relu, elu, softclip, sin, sinc, gauss
                       // see https://www.wikiwand.com/en/Activation_function
 
@@ -107,9 +79,7 @@ const ai = new WebAI.NeuralNetwork({ // simple NN example object
                      // to appropriate layers/pipes/parameters, 
                      // base64 encoded string or array or UInt32 typed array assumed here
   }
-}, executionUnit);  // execution unit parameter could be provided as an array of execution units, 
-                    // if so then JS engine should decide on what execution unit NN tasks will be executed 
-                    // and it doesn't have to be same execution unit for all tasks
+});   
 
 
 // === Start of user provided normalization/denormalization callbacks ===
@@ -196,8 +166,6 @@ ai.run(input, normalizeInput, denormalizeOutput)
 
 ai.reset() // resets any historical data inside NN (for NN's with recurences or historical data)
 
-ai.moveTo(executionUnit) // moves ai (also if in ongoing operation - train, verify, run) to another execution unit
-
 
 /*
   options example:
@@ -226,6 +194,12 @@ ai.toObject(options) // should wors similarly to above, but return JSON object
 
 
 ```
+
+## Using a variety of hardware devices
+
+ - API implementations should provide possibility of use different type of hardware devices in a system simultaneusly (all CPU cores, discrete and dedicated GPUs, DSPs, FPGAs) through promises API only
+ - Javascript engine should decide on what execution unit NN tasks will be executed and it doesn't have to be same execution unit for all tasks
+
 
 ## Advanced neural networks architectures
 
@@ -277,7 +251,7 @@ const ai = new WebAI.NeuralNetwork({
     }
   ],
 
-}, executionUnit);
+});
 
 ```
 
@@ -324,7 +298,7 @@ const ai = new WebAI.NeuralNetwork({
         //       and and {connections: "all-to-all", type: "neurons", activation: "tanh", count: 3}   :-)
   ],
 
-}, executionUnit);
+});
 
 ```
 
@@ -369,7 +343,7 @@ const ai = new WebAI.NeuralNetwork({
 
   ],
 
-}, executionUnit);
+});
 
 ```
 
@@ -378,7 +352,7 @@ const ai = new WebAI.NeuralNetwork({
 
 ```javascript
 
-WebAI.getOperations(operationsQuery, executionUnit)
+WebAI.getOperations(operationsQuery)
   /*
     where operationsQuery could look like this:
     {
@@ -408,7 +382,7 @@ WebAI.getOperations(operationsQuery, executionUnit)
   })
 
 
-WebAI.getActivations(activationsQuery, executionUnit)
+WebAI.getActivations(activationsQuery)
   /*
     where activationsQuery could look like this:
     {
