@@ -672,7 +672,7 @@ const ai = new WebAI.NeuralNetwork({
     30 // layer of "neuron" type operation with 30 neurons and connections type "every-to-every"
   ]
 
-}, cpuExecutionUnit); 
+}); 
 
 
 ```
