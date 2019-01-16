@@ -173,6 +173,12 @@ ai.stopTraining() // stops training (if ongoing) and fires promise for ai.train
 
 
 ai.verify(data, options) // data can be a binary stream or typed array
+  /*
+    example options object could look like that:
+    {
+      errorMeasureType: "mean-square",        // default: "mean-square"
+    }
+  */
   .then(verificationInfo => {
   });
 
