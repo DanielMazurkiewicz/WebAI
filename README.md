@@ -141,13 +141,28 @@ ai.train(data, options) // data can be a binary stream or typed array
   /*
     example options object could look like that:
     {
-      type: "back-propagation",
-      toSkip: ["names_of_pipes_or_layers"],  // optional and if provided performs training without changing data from given layers
-                                             // or pipes
+      toSkip: ["names_of_pipes_or_layers"],   // optional and if provided performs training without changing data from given
+                                              // layers or pipes
 
-      toTrain: ["names_of_pipes_or_layers"], // optional and if provided performs training only on given layers or pipes
+      toTrain: ["names_of_pipes_or_layers"],  // optional and if provided performs training only on given layers or pipes
 
-      ... -  and some other backpropagation training detailed options
+      // training stop conditions:
+
+      maxIterations: 20000,                   // the maximum times to iterate the training data (default: Infinity)
+      timeout: 1000,                          // the max number of milliseconds to train for (default: Infinity)
+      errorMeasureType: "mean-square",        // default: "mean-square"
+      errorThreshold: 0.5,                    // the acceptable error percentage from training data --> number between 0 and 100
+                                              // (default: 0)
+                                              //
+                                              // If none of stop conditions provided, training continues till method "stopTraining"
+                                              // is called
+
+
+      type: "back-propagation",               // default: "back-propagation"
+      // backpropagation specific detailed options:
+
+      learningRate: 0.3,    // scales with delta to effect training rate --> number between 0 and 1
+      momentum: 0.1,        // scales with next layer's change value --> number between 0 and 1
     }
   */
   .then(trainingInfo => {
