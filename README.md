@@ -37,6 +37,8 @@ API proposal for web based neural networks.
 ## Javascript example
 
 This is API proposal - just something to start with standardization process.
+https://webmachinelearning.github.io/
+
 
 ```javascript
 
@@ -233,16 +235,17 @@ ai.toObject(options) // should wors similarly to above, but return JSON object
 
 ## Advanced neural networks architectures
 
- - First layer and pipes located on first layer are always considered an "input" type of operation, that type can't be changed or used on other layers.
- - For any sort of recurrent NN "pipes" could be used
- - Pipes could direct neuron outputs in both directions (forward and backward) - also to current layer/pipe as well
+ - First layer and pipes located on first layer are always considered an "input" type of operation, unless specifically permitted, no other types can't be used on first layer
+ - Pipes is a mechanism to introduce advanced NN architectures, they flexibly allow to get desired schema/shape of NN, some more sophisticated recurrent NN's can be easily achieved with it as well
+ - Pipes can direct neuron outputs in both directions (forward and backward) - also to current layer/pipe as well
  - Piping to same or above layer means that outputs of that particular pipe/layer will be available there in next run
- - Activation function and other "future" options can be modified for every layer and every pipe in a layer
- - Pipes could also be assigned names
- - Layer could be build out of pipes only (as an option)
- - Pipes on first layer adds additional inputs
+ - Activation function can be modified for every layer and every pipe in a layer
+ - Pipes can also be assigned names
+ - Layer can be build out of pipes only (as an option)
+ - Pipes on first layer adds additional inputs in order of appearance
  - Pipes without property "to" pipe simply to next layer
- - If multiple pipes pipe to same pipe end then all of their outputs are joined together in order of appearance in JSON model
+ - Layer can also define property "to"
+ - If multiple pipes pipe to same pipe end then all of their outputs are joined together in order of appearance in JSON model. If outputs are multidimmensional, then number of all dimmensions (except last one) must match (otherwise error thrown). Last dimmension for result of such a join is in this case sum of last dimmensions
  - If piping to fixed size pipe end then size of piping layer or pipe must equal to size of pipe end, otherwise error thrown
 
  Core properties summary:
@@ -250,9 +253,9 @@ ai.toObject(options) // should wors similarly to above, but return JSON object
   - **name** property defines a name for layer or pipe, all names must be unique
   - **type** property defines a type of operator for given layer or pipe, available options for core ml: neurons, lstm-n, lstm-p, gru. Where "n" stands for "normalized", and "p" for "pseudo". Default: "neurons"
   - **activation** property defines an activation function for neurons in given layer or pipe
-  - **pipes** property defines a list of pipes for given layer
   - **connections** property defines a way that neurons from given pipe/layer are connected to predecessing layers/pipes
-  - **count** property defines how many inputs/neurons/outputs is in layer/pipe operation
+  - **pipes** property defines a list of pipes for given layer
+  - **count** property defines how many inputs/neurons/outputs is in layer/pipe operation, can be a number or array - if array provided (eg [2, 3, 5]) then assumed multidimmensional output, single number is just a shorthand for: [number]
   - **to** property defines where to pipe neuron/operation outputs(or data inputs if on input layer) of current layer/pipe
   - **history** property defines additional outputs of current layer/pipe build out of values of neuron/operation outputs (or input data if on input layer) from given number of previous NN runs
   - **historyTo** property defines where to pipe previous NN runs values of neuron/operation outputs(or data inputs if on input layer) from current layer/pipe
@@ -440,95 +443,8 @@ WebAI.getActivations(activationsQuery)
 WebAI.defineCustomDomain("domain_name"); // throws error when domain already exist
 
 
-// defines a new operation for given domain, operation execution always fallbacks to JS engine, 
-// no matter of what execution unit is used
-WebAI.defineCustomOperation( // throws error if operation already exist
-  operationDescriptionObject,
-  /*
-    example of operationDescriptionObject:
-    {
-      name: "name_of_operation",
-      domain: "some_existing_domain_name",
-      dataType: "fp32",
-      initState: (someParams) => { const state = {}; state.hello = true; return state;},  
-                                                // if initState is defined, then this is a
-                                                // statefull operation
-
-      model: {
-        params: [":param1", ">param2", "paramN"] // JSON model properties that should be passed 
-                                                    // as arguments to this operation
-
-          // if param name starts with colon ":" then it is assumed a pipe end or an 
-          // array type argument (at JSON model - unique string name of pipe end or array 
-          // or typed array - expected), if numeric type value provided at json model then 
-          // assumed that expected number of values should be found in setup.data property 
-          // of model, if parameter is not provided at json model, then value is evaluated
-          // from "defaults" property, if not in defaults then throws error
-
-          // ":input" is a reserved name for default pipe type parameter
-          // "activation" is a reserved name for passing activation function to custom operation
-          // "activationStr" is a reserved name for passing name of activation function
-          // "count" is a reserved name for passing number of outputs from operation, 
-          //    Despite of custom operation output size, output will be always trimmed to 
-          //    "count" size and filled with zeroes if necessary.
-          //    If no count provided in model then property "count" from "defaults" will be used,
-          //    but if in defaults "count" is not provided then it throws error (this is a 
-          //    guarantee that output size is known without running NN operations)
-          // "state" is a reserved word for layer/pipe state
-
-          // All non reserved params that will use existing model properties names (mentioned
-          // in "Core properties summary") will pass their value directly to operation function
-
-          // For non numeric and non boolean params prefix ">" should be used
-          // (those will be not stored in "setup.data" and if not provided "undefined"
-          // will be passed to operation function). Prefix doesn't prevent providing and using
-          // numerics or booleans, it just prevents storing parameter in setup.data
-          
-
-          // All numeric and boolean params not provided specifically in model will be 
-          // expected to be placed in models property "setup.data" in order of appearance without 
-          // duplicates (and if no "setup" provided then initialized with random values)
-          // (for booleans: false: 0; true: !=0)
-
-          // It is possible to pass same param more than once to an operation
-
-          // Some example compiling all above:
-          //    [">someStringOrObjectTypeParameter", ":input", ":additionalPipeEnd", "activation", 
-          //                "state", ":input", "activationStr", "someNumericOrBooleanCustomParameter"]
-
-        defaults: { // assigning defaults is performed only once - on NN object creation
-          param1: { // if object provided then assumed "calculated" default value, otherwise given
-                    // value will be used as default
-
-            params: ["param1", "param2", "paramN"],   // Calculation can use only parameters defined 
-                                                      // in params
-                                                      // For pipe end type parameters only length is
-                                                      // passed
-
-            calc: (p1, p2, p3) => { // function that can calculate default value
-              return 10; // It means that if no pipe will connect to that parameter it will use 10 
-                         // random data from setup.data (as numeric values in pipe ends means that
-                         // specific number of data in setup.data should be expected
-            }
-          },
-          param2: "hello webml"
-        },
-        initStateParams: ["param1","param2","paramN"] // fires "initState" method on NN reset
-                                                      // with given parameters
-                                                      // same behavior as "params" in "defaults"
-      }
-
-    }
-  */
-
-  function operation_itself(operation_params) {
-    // js code itself can make use of any existing API (including webgpu, webgl, webml)
-  },
-);
 
 
-
-// defines a new activation function for given domain, its execution always fallbacks to JS engine
 WebAI.defineCustomActivation(
   activationDescriptionObject,
   /*
@@ -547,8 +463,133 @@ WebAI.defineCustomActivation(
 );
 
 
+
+// defines a new operation for given domain, operation execution always fallbacks to JS engine, 
+// no matter of what execution unit is used
+WebAI.defineCustomOperation( // throws error if operation already exist
+  operationDescriptionObject,
+  /*
+    example of operationDescriptionObject:
+    {
+      name: "name_of_operation",
+      domain: "some_existing_domain_name",
+      dataType: "fp32",
+      initState: (someParams) => { const state = {}; state.hello = true; return state;},  
+                                                // if initState is defined, then this is a
+                                                // statefull operation
+
+      model: {
+        defineParams: ["*param1", "!param2", "!*param3", "paramN", paramObject], 
+                                                  // List of all properties of this operation available
+                                                  // to JSON model
+                                                  // Properties can be defined via shorthand or object
+                                                  // (details below)
+        
+
+        initState: ["param1", ":param2", "paramN", "paramN"], 
+                        // Allows to call "initState" method on NN reset
+                        // with given parameters from model
+
+        operation: [":param1", ":param1", "param2", "paramN"],      
+                        // Allows to call operation_itself with given parameters 
+                        // from model
+
+        // it is possible to pass same param to function multiple times
+
+      }
+
+    }
+  */
+
+  function operation_itself(operation_params) {
+    // Js code itself can make use of any existing API (including webgpu, webgl, webml)
+    // Function should return typed array or array or nested arrays 
+    // Multidimmensional nested arrays can be flatten to single dimmension
+  },
+);
+
+
+### Operation description object - model.params:
+
+```javascript
+// all boolean values by default are false
+
+const paramObject = {
+  name: "parameter_name",
+  arrayType: true,              // Such a parameter can be a pipe end (accepts piped pipes 
+                                // and layers) or array (also array of arrays for 
+                                // multidimmensional arrays)
+
+  noSetup: true,                // Prevents given parameter from being stored in setup.data
+                                // (if noSetup is false and string data will be provided
+                                // to property then it will be not stored in setup anyway)
+
+  allowedOnFirstLayer: false,   // Throws error if someone tries to use such an operation
+                                // on first layer (inputs layer) if this set to false
+
+  subjectOfTraining: true,      // Informs training algorithms that this property can be
+                                // a subject of training
+
+  trainOnlyIfNotInModel: true,  // Prevents training on property data if provided in model
+
+  paramsForDefault: ["param1", "param2", ":param2", "&param2", "paramN"],   
+                                // Allows to call "default" function with given parameters 
+                                // from model
+
+
+  default: (p1, p2, p3) => {    // If default property is a function then calculation is 
+    return 10;                  // to retrieve default value
+  }                             // In other case, default value is a property value
+}
 ```
 
+#### Array type arguments
+
+  * can be assigned a string - then it means that it is a pipe end with given name
+  * can be assigned a number - then it determines one dimmensional array with given number of elements that should be passed from setup.data to operation
+  * can be assigned array or nested arrays - data are provided directly from model, dimmensions passed to user defined functions are determined automatically based on input
+  * can be assigned an object with property "count" (eg. { count: [10, 20] } then it means that expected data for 2 dimmensional array should be placed in setup.data
+  * if contains dimmensions data then they will be not stored to setup.data
+
+#### Shorthands
+
+  * Properties used to define parameters that should be passed from model to called function (paramObject.paramsForDefault, model.initState, model.operation) may contain strings which starts with:
+    - ":" - property dimmensions instead of property value are passed - if such a property in a model is provided as an array then dimmensions are guessed from provided array (or array of arrays)
+    - "&" - layer/pipe id of value producer or id of data supplied by model is passed. For automatically merged values (multiple layers/pipes and data from model to one input) all id's are provided.
+
+  * Property "model.defineParams" is an array which may contain string literals of names or detailed objects describing parameters. If string provided then it is considered as shorthand for object. String can start with multiple special characters which are shorthand for:
+    - "*" - equivalent to: paramObject.arrayType = true
+    - "!" - equivalent to: paramObject.noSetup = true
+    - "@" - equivalent to: paramObject.subjectOfTraining = true
+
+  Example:
+ 
+  "!@*weights" is equivalent to: { name: "weights", noSetup: true, arrayType: true, subjectOfTraining: true } 
+
+
+#### Reserved property/parameters names
+
+  * "input" - array type parameter, a default pipe end
+  * "activation" - reserved name for passing activation function to custom operation
+  * "activationStr" is a reserved name for passing name of activation function
+  * "state" is a reserved word for layer/pipe state
+  * "id" is a reserved word for layer/pipe id's and data id's (each has unique id assigned at object creation from JSON model) where pipe/layer ids are positive integers and data id's are negative integers
+  * "count" is a reserved name for layer/pipe output dimmensions. If no "count" provided in model then defined default will be used ("count property can be defined as paramObject, but can contain only properties that helps providing default values, other are forbidden"). If no default, then it throws error (this is a guarantee that output dimmensions are known without running NN operations)
+
+Property names mentioned in "Core properties summary" can not be repurpoused (except property "connections") and are reserved too
+
+
+#### Other informations
+
+  * All numeric and boolean params not provided specifically in model and not having default value will be placed be placed in models property "setup.data" and initialized with random values
+  * Booleans converted to numeric have values: false: 0, true: !=0
+  * If array type parameter is not provided, then default for its computation will be used. Default can return both - array or array dimmensions. In case of array dimmensions data for array will be placed in models property "setup.data" and initialized with random values. In case of no default for computation of array and parameter is not provided then error should be thrown.
+  * All data in setup.data are stored in order of appearance in model.defineParams
+
+
+#### Reserved operation types names
+
+  * input
 
 ## Example with custom operations on model level
 
@@ -556,22 +597,29 @@ WebAI.defineCustomActivation(
 
 WebAI.defineCustomDomain("custom-domain");
 WebAI.defineCustomOperation(
+
   {
     name: "addIfAbove",
     domain: "custom-domain",
     dataType: "fp32",
+
     model: {
-      params: [":a", ":b", "value"], // pipe type parameter a and b, numeric or boolean parameter value
-      defaults: {
-        count: {
-          params: ["a", "b"],
-          calc: (lengthOfA, lengthOfB) => lengthOfA > lengthOfB ? lengthOfA : lengthOfB;
-        }
-      }
+      defineParams: ["*a", "*b", "value",     // array type parameter a and b, non array type parameter "value"
+        {                                     // (notice no default input for this operation)
+
+          name: "count",                      // we want to calculate output dimmensions, that is allowed use 
+                                              // reserved param name - it can define properties to calculate default
+
+          paramsForDefault: [":a", ":b"],     // : - get dimmensions of parameter a and b
+          default: (lengthOfA, lengthOfB) => (lengthOfA[0] > lengthOfB[0]) ? lengthOfA : lengthOfB;
+        }                                     // notice, dimmensions are passed as array
+      ],
+      operation: ["a", "b", ":a", ":b", value],
     }
   },
-  (a, b, valueToCompareWith) => {
-    if (a.length !== b.length) throw new Error('inputs have to have same lengths')
+
+  (a, b, a_length, b_length, valueToCompareWith) => {
+    if (a_length[0] !== b_length[0]) throw new Error('inputs have to have same lengths')
     let result = [];
     for (let i = 0; i < a.length; i++) {
       if (a[i] > valueToCompareWith && b[i] > valueToCompareWith) {
@@ -589,18 +637,19 @@ WebAI.defineCustomOperation(
     domain: "custom-domain",
     dataType: "fp32",
     model: {
-      params: [":input", "value"],
-      defaults: {
-        count: {
-          params: ["input"],
-          calc: length => length
+      defineParams: ["*input", "value", 
+        {                              
+          name: "count", 
+          paramsForDefault: [":input"],
+          default: calc: length => length  // output with size of input
         }
-      }
+      ],
+      operation: ["input", "value", ":input"],
     }
   },
-  (input, valueToCompareWith) => {
+  (input, valueToCompareWith, input_length) => {
     let result = [];
-    for (let i = 0; i < input.length; i++) {
+    for (let i = 0; i < input_length[0]; i++) {
       if (input[i] < valueToCompareWith) {
         result[i] = input[i];
       } else {
@@ -616,17 +665,32 @@ WebAI.defineCustomOperation(
     domain: "custom-domain",
     dataType: "fp32",
     model: {
-      params: [":input", ":weights", "bias", "activation", "connections", "count"],
-      defaults: {
-        weights: {
-          params: ["input", "count", "connections"],
-          calc: (inputsNumber, neuronsNumber, connectionsType) => inputsNumber * neuronsNumber;
+      defineParams: ["activation", "connections",
+        {
+          name: "bias",
+          subjectOfTraining: true
+        },
+        {
+          name: "weights",
+          arrayType: true,
+          subjectOfTraining: true,
+          paramsForDefault: [":input", "count", "connections"], // input and count are predefined properties
+                                                                // so we can use them here without defining
+          default: (inputsDimmensions, neuronsDimmensions, connectionsType) => {
+            // for sake of simplicity skipped taking into consideration connection type here
+
+            return { count: [...inputDimmensions, ...neuronDimmensions] };
+                                      // object passed as default to array property means that
+                                      // it is dimmensions object and based on it data will be
+                                      // be stored in setup.data with random values at the begining
+          };
         }
-      }
+      ],
+      operation: ["input", "weights", "bias", "activation", "connections", ":input"],
     }
   },
   (inputs, weights, bias, activationFunction, connectionsType, neuronsCount) => {
-    let result = new Float32Array(neuronsCount);
+    let result = new Float32Array(neuronsCount.reduce((a, b) => a * b));
     // some code for neuron layers that calls activationFunction( ) for each neuron
     return result;
   }
