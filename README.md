@@ -72,14 +72,11 @@ const ai = new WebAI.NeuralNetwork({ // simple NN example object
 
   setup: {    // field optional
 
-    data: '', // weights, biases, and other parameters ...
-              // if string then base64 encoded setup data expected, 
-              // can be also an array or typed array (of dataType),
-              // if field not provided random values assumed
+    data: '', // Weights, biases, and other parameters ...
+              // If string then base64 encoded setup data expected, 
+              // Can be also an array or typed array (of dataType),
+              // If field not provided random values assumed
 
-    instructions: '' // TBD: instructions that will help assigning appropriate data from setup.data
-                     // to appropriate layers/pipes/parameters, 
-                     // base64 encoded string or array or UInt32 typed array assumed here
   }
 });   
 
@@ -464,8 +461,7 @@ WebAI.defineCustomActivation(
 
 
 
-// defines a new operation for given domain, operation execution always fallbacks to JS engine, 
-// no matter of what execution unit is used
+// defines a new operation for given domain
 WebAI.defineCustomOperation( // throws error if operation already exist
   operationDescriptionObject,
   /*
@@ -507,7 +503,7 @@ WebAI.defineCustomOperation( // throws error if operation already exist
     // Multidimmensional nested arrays can be flatten to single dimmension
   },
 );
-
+```
 
 ### Operation description object - model.params:
 
@@ -574,17 +570,17 @@ const paramObject = {
   * "activationStr" is a reserved name for passing name of activation function
   * "state" is a reserved word for layer/pipe state
   * "id" is a reserved word for layer/pipe id's and data id's (each has unique id assigned at object creation from JSON model) where pipe/layer ids are positive integers and data id's are negative integers
-  * "count" is a reserved name for layer/pipe output dimmensions. If no "count" provided in model then defined default will be used ("count property can be defined as paramObject, but can contain only properties that helps providing default values, other are forbidden"). If no default, then it throws error (this is a guarantee that output dimmensions are known without running NN operations)
+  * "count" is a reserved name for layer/pipe output dimmensions. If no "count" provided in model then defined default will be used ("count" property can be defined as paramObject, but can contain only properties that helps providing default values, other are forbidden). If no default, then it throws error (this is a guarantee that output dimmensions are known without running NN operations)
 
 Property names mentioned in "Core properties summary" can not be repurpoused (except property "connections") and are reserved too
 
 
 #### Other informations
 
-  * All numeric and boolean params not provided specifically in model and not having default value will be placed be placed in models property "setup.data" and initialized with random values
+  * All numeric and boolean params not provided specifically in model and not having default value will be placed in models property "setup.data" and initialized with random values
   * Booleans converted to numeric have values: false: 0, true: !=0
   * If array type parameter is not provided, then default for its computation will be used. Default can return both - array or array dimmensions. In case of array dimmensions data for array will be placed in models property "setup.data" and initialized with random values. In case of no default for computation of array and parameter is not provided then error should be thrown.
-  * All data in setup.data are stored in order of appearance in model.defineParams
+  * All data in setup.data are stored in order of appearance in JSON model and then in order of appearance in model.defineParams. Any mismatch between expected amount of data in setup.data and actually available will cause error.
 
 
 #### Reserved operation types names
