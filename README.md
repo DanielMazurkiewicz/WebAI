@@ -271,7 +271,7 @@ ai.export({
  - Javascript engine should decide on what execution unit NN tasks will be executed and it doesn't have to be same execution unit for all tasks
 
 
-## Advanced neural networks architectures
+## Layers and pipes - advanced neural networks architectures
 
  - First layer and pipes located on first layer are always considered an "input" type of operation, unless specifically permitted, no other types can't be used on first layer
  - Pipes is a mechanism to introduce advanced NN architectures, they flexibly allow to get desired schema/shape of NN, some more sophisticated recurrent NN's can be easily achieved with it as well
@@ -404,10 +404,10 @@ const ai = new WebAI.NeuralNetwork({
     8,
     8,
     {
-      type: "net",    // reserved operation name for combining neural networks
-                      // can be used also at input layer
+      type: "net",    // Reserved operation name for combining neural networks
+                      // Can be used also at input layer
 
-      net: smallerNN1 // will throw error if different domains or data types
+      net: smallerNN1 // Will throw error if different domains or data types
                       // "net" operation has its own names context for piping
     },
     {
@@ -456,8 +456,7 @@ WebAI.getOperations(operationsQuery)
 
   })
 
-
-// custom domains will be available only for cpu execution units.
+// defines a new domain
 WebAI.defineDomain({
   domainName: "domain_name",      // throws error when domain already exist
   defaultDataType: "fp32",        // optional
@@ -509,7 +508,7 @@ WebAI.defineOperation( // throws error if operation already exist
 );
 ```
 
-### Operation description object - model.params:
+### Operation description object - model.operation:
 
 ```javascript
 // all boolean values by default are false and can be ommited
@@ -547,13 +546,13 @@ const paramObject = {
 
   * can be assigned a string - then it means that it is a pipe end with given name
   * can be assigned a number - then it determines one dimmensional array with given number of elements that should be passed from setup.data to operation
-  * can be assigned array or nested arrays - data are provided directly from model, dimmensions passed to user defined functions are determined automatically based on input
+  * can be assigned array or nested arrays - data are provided directly from model, dimmensions passed to operations are determined automatically based on input array
   * can be assigned an object with property "size" (eg. { size: [10, 20] } then it means that expected data for 2 dimmensional array should be placed in setup.data
-  * if contains dimmensions data then they will be not stored to setup.data
+  * if contains dimmensions data then they will be stored to setup.data
 
 #### Shorthands
 
-  * Properties used to define parameters that should be passed from model to called function (paramObject.paramsForDefault, model.initState, model.operation) may contain strings which starts with:
+  * Properties used to define parameters that should be passed from model to called operation function (paramObject.paramsForDefault, model.operation) may contain strings which starts with:
     - ":" - property dimmensions instead of property value are passed - if such a property in a model is provided as an array then dimmensions are guessed from provided array (or array of arrays)
     - "&" - layer/pipe id of value producer or id of data supplied by model is passed. For automatically merged values (multiple layers/pipes and data from model to one input) all id's are provided.
 
@@ -573,16 +572,18 @@ const paramObject = {
   * "input" - array type parameter, a default pipe end
   * "activation" - reserved name for passing activation function to custom operation
   * "activationStr" is a reserved name for passing name of activation function
-  * "state" is a reserved word for layer/pipe state
+  * "state" is a reserved word for layer/pipe state, holds object with internal state parameters
   * "id" is a reserved word for layer/pipe id's and data id's (each has unique id assigned at object creation from JSON model) where pipe/layer ids are positive integers and data id's are negative integers
   * "size" is a reserved name for layer/pipe output dimmensions. If no "size" provided in model then defined default will be used ("size" property can be defined as paramObject, but can contain only properties that helps providing default values, other are forbidden). If no default, then it throws error (this is a guarantee that output dimmensions are known without running NN operations)
+
+All above properties are predefined and don't have to be defined with operation definition (unless defaults have to be provided for "input" or "size", then these properties can be defined again)
 
 Property names mentioned in "Core properties summary" can not be repurpoused (except property "connections") and are reserved too
 
 
 #### Operation variants
 
-Different operation variants might aim different purpouses. Predefined variants are: "default" and "standalone". First is used for default model compilation/running/training/veryfing, second allows access to operations programatically. Binding to "default" variant can be obtained only via "WebAI.defaineOperation" method. Variants can be used for different purpouses, like: exporting to different programming languages or to different NN formats, running on non standard computation envirionment (CPLD, FPGA, DSP, remote computing resources) and so on ... Running, compilation, training and verifying function decides what variant of operation they'll use to operate and can use many of them at the same time.
+Same operation might have different variants. Different operation variants might aim different purpouses. Predefined variants are: "default" and "standalone". First is used for default model compilation/running/training/veryfing, second allows access to operations programatically as regular functions. Binding to "default" variant can be obtained only via "WebAI.defaineOperation" method. Variants can be used for different purpouses, like: exporting to different programming languages or to different NN formats, running on non standard computation envirionment (CPLD, FPGA, DSP, remote computing resources) and so on ... Running, compilation, training and verifying function decides what variant of operation they'll use to operate and can use many of them at the same time.
 
 ```javascript
 // defines a new operation variant for given domain
@@ -611,7 +612,7 @@ WebAI.defineOperationVariant( // throws error if variant already exist or operat
 
   * All numeric and boolean params not provided specifically in model and not having default value will be placed in models property "setup.data" and initialized with random values
   * Booleans converted to numeric have values: false: 0, true: !=0
-  * If array type parameter is not provided, then default for its computation will be used. Default can return both - array or array dimmensions. In case of array dimmensions data for array will be placed in models property "setup.data" and initialized with random values. In case of no default for computation of array and parameter is not provided then error should be thrown.
+  * If array type parameter is not provided, then default from property definition will be computed. Default can return - numbers (meaning single dimmensional array with size of value of number), arrays (also nested) or object with property "size" containing array with dimmensions. In first and last case data for will be placed in models property "setup.data" and initialized with random values. In case of no default in property definition and parameter not provided at model then error should be thrown (can not determine array size).
   * All data in setup.data are stored in order of appearance in JSON model and then in order of appearance in model.defineParams. Any mismatch between expected amount of data in setup.data and actually available will cause error.
   * default values are not stored in setup.data (since no need for)
 
@@ -638,15 +639,17 @@ WebAI.defineOperation(
     dataType: "fp32",
 
     model: {
-      defineParams: ["*a", "*b", "value",     // array type parameter a and b, non array type parameter "value"
+      defineParams: ["*a", "*b", "value",     // Array type parameter a and b, non array type parameter "value"
         {                                     // (notice no default input for this operation)
 
-          name: "size",                      // we want to calculate output dimmensions, that is allowed use 
-                                              // reserved param name - it can define properties to calculate default
+          name: "size",                       // We want to calculate output dimmensions, that is allowed use
+                                              // of predefined reserved param, but it can only define 
+                                              // properties to calculate default
 
-          paramsForDefault: [":a", ":b"],     // : - get dimmensions of parameter a and b
+          paramsForDefault: [":a", ":b"],     // ":" - get dimmensions of parameter a and b
           default: (lengthOfA, lengthOfB) => (lengthOfA[0] > lengthOfB[0]) ? lengthOfA : lengthOfB;
-        }                                     // notice, dimmensions are passed as array
+        }                                     // Notice that dimmensions are passed as array
+                                              // Even single dimmensions passed as number will be converted to array with length "1"
       ],
       operation: ["a", "b", ":a", ":b", value],
     }
