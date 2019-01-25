@@ -44,9 +44,8 @@ Follow the status of machine learning standardization process:
  * ai.export(options)
 
 
-## Javascript example
+## Simple self explanatory JavaScript example
 
-This is API proposal - just something to start with standardization process.
 
 ```javascript
 
