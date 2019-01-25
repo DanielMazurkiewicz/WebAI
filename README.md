@@ -273,7 +273,7 @@ ai.export({
 ## Layers and pipes - advanced neural networks architectures
 
  - First layer and pipes located on first layer are always considered an "input" type of operation, unless specifically permitted, no other types can't be used on first layer
- - Pipes is a mechanism to introduce advanced NN architectures, they flexibly allow to get desired schema/shape of NN, some more sophisticated recurrent NN's can be easily achieved with it as well
+ - Pipes is a mechanism to introduce advanced NN architectures, their flexibly allow to get desired schema/shape of NN, some more sophisticated recurrent NN's can be easily achieved with it as well
  - Pipes can direct neuron outputs in both directions (forward and backward) - also to current layer/pipe as well
  - Piping to same or above layer means that outputs of that particular pipe/layer will be available there in next run
  - Activation function can be modified for every layer and every pipe in a layer
@@ -507,7 +507,7 @@ WebAI.defineOperation( // throws error if operation already exist
 );
 ```
 
-### Operation description object - model.operation:
+### Operation description object - model.defineParams:
 
 ```javascript
 // all boolean values by default are false and can be ommited
