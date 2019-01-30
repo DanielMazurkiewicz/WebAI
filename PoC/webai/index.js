@@ -1,44 +1,13 @@
 const domains = {};
 
-
-const defineCustomDomain({domainName, defaultDataType, defaultOperationType}) => {
+const defineDomain = ({domainName, defaultDataType, defaultOperationType, defaultActivationType}) => {
   if (domains[domainName]) throw new Error(`Domain ${domainName} already exist`);
   domains[domainName] = {
-    defaults: { dataType: defaultDataType, type: defaultOperationType },
+    defaults: { dataType: defaultDataType, type: defaultOperationType, activation: defaultActivationType },
     dataTypes: {}
   }
 };
-
-
-
-const defineCustomOperation({name, domain, dataType, initState, model}, operation) => {
-  const domainRoot = domains[domain];
-  if (!domainRoot) throw new Error(`Domain ${domain} doesn't exist`);
-
-  let domainDetails = domainsRoot.dataTypes[dataType];
-  if (!domainDetails) {
-    domainDetails = domainsRoot.dataTypes[dataType] = {
-      operationVariants: {
-        "default": {
-          [name]: {
-            model,
-            operation
-          }
-        }
-      },
-      runVariants: {}
-    }
-    return;
-  } else if (domainDetails.operationVariants.default[name]) {
-    throw new Error(`Variant "default" of operation ${name} (${dataType}) already exist in domain ${domain}`);
-  }
-
-  domainDetails.operationVariants.default[name] = {
-    model,
-    operation
-  }
-
-};
+const {defineOperation, defineOperationVariant} = require('./defineOperation')(domains);
 
 
 
@@ -70,7 +39,9 @@ class NeuralNetwork {
 }
 
 
-
+const printDomainObject = () => {
+  console.log(JSON.stringify(domains, null, 3));
+}
 
 module.exports = {
   getCapabilities,
@@ -79,5 +50,8 @@ module.exports = {
   defineDomain,
   defineOperation,
   defineOperationVariant,
-  NeuralNetwork
+  NeuralNetwork,
+
+
+  printDomainObject
 }

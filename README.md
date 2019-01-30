@@ -234,7 +234,7 @@ ai.setInternalState(state)
 
 
 ai.export({
-  to: 'json' // expected type of export output ("json", "object" - predefined for "core" domain)
+  to: 'json' // expected type of export output ("json", "object" - predefined for all domains, but will work only for domains that have defined api for retrieving data from NN)
   /* ... other properties of given export type ... */
 }).then(nnInExportedFormat => {});
 
@@ -290,7 +290,6 @@ ai.export({
   - **name** property defines a name for layer or pipe, all names must be unique
   - **type** property defines a type of operator for given layer or pipe, available options for core ml: neurons, lstm-n, lstm-p, gru. Where "n" stands for "normalized", and "p" for "pseudo". Default is defined at domain level and can be changed at model level by providint "type" property in root of model
   - **activation** property defines an activation operation for operation in given layer or pipe. It expects operation with given name to be defined and have set "isActivation" property set to true
-  - **connections** property defines a way that neurons from given pipe/layer are connected to predecessing layers/pipes
   - **pipes** property defines a list of pipes for given layer
   - **size** property defines how many inputs/neurons/outputs is in layer/pipe operation, can be a number or array - if array provided (eg [2, 3, 5]) then assumed multidimmensional output, single number is just a shorthand for: [number]
   - **to** property defines where to pipe neuron/operation outputs(or data inputs if on input layer) of current layer/pipe
@@ -488,7 +487,7 @@ WebAI.defineOperation( // throws error if operation already exist
                                                   // Properties can be defined via shorthand or object
                                                   // (details below)
         
-        operation: [":param1", ":param1", "param2", "paramN"],
+        callWith: [":param1", ":param1", "param2", "paramN"],
                         // Allows to call operation_itself with given parameters 
                         // from model
 
@@ -530,7 +529,7 @@ const paramObject = {
 
   trainOnlyIfNotInModel: true,  // Prevents training on property data if provided in model
 
-  paramsForDefault: ["param1", "param2", ":param2", "&param2", "paramN"],   
+  callDefaultWith: ["param1", "param2", ":param2", "&param2", "paramN"],   
                                 // Allows to call "default" function with given parameters 
                                 // from model
 
@@ -551,9 +550,14 @@ const paramObject = {
 
 #### Shorthands
 
-  * Properties used to define parameters that should be passed from model to called operation function (paramObject.paramsForDefault, model.operation) may contain strings which starts with:
+  * Properties used to define parameters that should be passed from model to called operation function (paramObject.callDefaultWith, model.callWith) may contain strings which starts with:
     - ":" - property dimmensions instead of property value are passed - if such a property in a model is provided as an array then dimmensions are guessed from provided array (or array of arrays)
     - "&" - layer/pipe id of value producer or id of data supplied by model is passed. For automatically merged values (multiple layers/pipes and data from model to one input) all id's are provided.
+    - "$" - property size (total number of elements of given data type).
+    - "#" - used in conjunction with property "size" returns total number of outputs defined by property size (multiplies all values in given array type property)
+    - "^" - returns offset of given property in internal data, settings or input/output buffer
+    - "%" - returns information about source of property (internal data, settings, input/output, model, default value)
+
 
   * Property "model.defineParams" is an array which may contain string literals of names or detailed objects describing parameters. If string provided then it is considered as shorthand for object. String can start with multiple special characters which are shorthand for:
     - "*" - equivalent to: paramObject.arrayType = true
@@ -568,10 +572,11 @@ const paramObject = {
 
 #### Reserved property/parameters names
 
-  * "input" - array type parameter, a default pipe end
+  * "input" - array type parameter, a default pipe end (default input to operation)
+  * "output" - array type parameter, output from operation that can be passed as argument
+  * "state" is a reserved word for layer/pipe state, holds object with internal state parameters
   * "activation" - reserved name for passing activation function to custom operation
   * "activationStr" is a reserved name for passing name of activation function
-  * "state" is a reserved word for layer/pipe state, holds object with internal state parameters
   * "id" is a reserved word for layer/pipe id's and data id's (each has unique id assigned at object creation from JSON model) where pipe/layer ids are positive integers and data id's are negative integers
   * "size" is a reserved name for layer/pipe output dimmensions. If no "size" provided in model then defined default will be used ("size" property can be defined as paramObject, but can contain only properties that helps providing default values, other are forbidden). If no default, then it throws error (this is a guarantee that output dimmensions are known without running NN operations)
 
@@ -595,7 +600,7 @@ WebAI.defineOperationVariant( // throws error if variant already exist or operat
       domain: "some_existing_domain_name",
       dataType: "fp32",
       variant: "variant_name",
-      operation: [":param1", ":param1", "param2", "paramN"],
+      callWith: [":param1", ":param1", "param2", "paramN"],
             // Allows to call operation_itself with given parameters from model
             // Only parameters defined in "default" variant of operation can
             //  be used
@@ -650,7 +655,7 @@ WebAI.defineOperation(
         }                                     // Notice that dimmensions are passed as array
                                               // Even single dimmensions passed as number will be converted to array with length "1"
       ],
-      operation: ["a", "b", ":a", ":b", value],
+      callWith: ["a", "b", ":a", ":b", "value"],
     }
   },
 
@@ -680,7 +685,7 @@ WebAI.defineOperation(
           default: calc: length => length  // output with size of input
         }
       ],
-      operation: ["input", "value", ":input"],
+      callWith: ["input", "value", ":input"],
     }
   },
   (input, valueToCompareWith, input_length) => {
@@ -722,7 +727,7 @@ WebAI.defineOperation(
           };
         }
       ],
-      operation: ["input", "weights", "bias", "activation", "connections", ":input"],
+      callWith: ["input", "weights", "bias", "activation", "connections", ":input"],
     }
   },
   (inputs, weights, bias, activationFunction, connectionsType, neuronsCount) => {
