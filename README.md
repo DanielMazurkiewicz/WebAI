@@ -1,13 +1,18 @@
 # WebAI
-API proposal for web based neural networks. It is still a form of notes and drafts, but already pretty mature.
-Follow the status of machine learning standardization process:
- * https://webmachinelearning.github.io/
- * https://github.com/webmachinelearning
+API proposal for web based neural networks/machine learning. It is still a form of notes and drafts, but already pretty mature.
 
+# Background
+Two years ago I've joined W3C [webmachinelearning standardization group](https://www.w3.org/community/webmachinelearning/) hoping to influence the result API. This repository was supoused to be my input for discusstion of future shape of machine learning API.
 
-## Basic goals
+Given below "Basic goals" started to "draw" this counter proposal but it didn't get into discussion at all (nor even just a goals). I was quickly explained that my voice doesn't matter, was told that it is up to browser vendors (aka google, microsoft) what they want (and what they don't) and what they will implement and these are the reasons why my proposals and goals are not gonna get into an agenda of discussion.
+
+## Basic goals for web based machine learning
 
  - Providing simple to learn and use machine learning API
+ - Addressing the needs of smaller companies, individuals, hobbyist and even kids who learn JavaScript programming 
+ - "descientifing" a bit machine learning (to have something a bit closer to what is a [brain.js](https://brain.js.org/#/))
+ - Avoiding necessity of 3rd party libraries as it happen to webgl for example - cool API, but at the end relatively heavy Three.js is used in over 90% of cases
+ - No ["lock in"](https://en.wikipedia.org/wiki/Vendor_lock-in) of standards offered and promoted by "big tech" companies
  - Allowing to train and run AI in web browsers
  - Allowing to use of all possible and available hardware accelerations (simultaneusly) for training and running NNs - all installed gpu's (vulkan, opencl, glsl, cuda), dsp's, fgpa's, attached AI devices, cpu's
  - Neural networks architecture as flexible descriptive JSON format that can be:
@@ -19,7 +24,8 @@ Follow the status of machine learning standardization process:
     * easily used by visual neural network designing/training tools
     * suitable for basic and for scientific purpouses
 
-## TLDR;
+
+## API TLDR;
 
  * WebAI.getCapabilities()
  * WebAI.getOperations(operationsQuery)
