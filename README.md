@@ -1,6 +1,4 @@
-Of course. Here is the clean, fully updated document without any annotations indicating the changes. It reads as a single, cohesive specification.
 
-***
 
 # WebAI
 API proposal for web based neural networks/machine learning. This updated draft incorporates concepts from modern ML frameworks like automatic differentiation, graph compilation, and advanced data pipelines to ensure performance, flexibility, and future-readiness.
