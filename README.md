@@ -1,3 +1,4 @@
+
 # WebAI
 API proposal for web based neural networks/machine learning. It is still a form of notes and drafts, but already pretty mature.
 
@@ -9,7 +10,7 @@ Given below "Basic goals" started to "draw" this counter proposal but it didn't 
 ## Basic goals for web based machine learning
 
  - Providing simple to learn and use machine learning API
- - Addressing the needs of smaller companies, individuals, hobbyist and even kids who learn JavaScript programming 
+ - Addressing the needs of smaller companies, individuals, hobbyist and even kids who learn JavaScript programming
  - "descientifing" a bit machine learning (to have something a bit closer to what is a [brain.js](https://brain.js.org/#/))
  - Avoiding necessity of 3rd party libraries as it happen to webgl for example - cool API, but at the end relatively heavy Three.js is used in over 90% of cases
  - No ["lock in"](https://en.wikipedia.org/wiki/Vendor_lock-in) of standards offered and promoted by "big tech" companies
@@ -17,7 +18,7 @@ Given below "Basic goals" started to "draw" this counter proposal but it didn't 
  - Allowing to use of all possible and available hardware accelerations (simultaneusly) for training and running NNs - all installed gpu's (vulkan, opencl, glsl, cuda), dsp's, fgpa's, attached AI devices, cpu's
  - Neural networks architecture as flexible descriptive JSON format that can be:
     * easily maintained by developers
-    * easily compiled into executable code 
+    * easily compiled into executable code
     * easily transferred between proceeses or machines
     * easily converted into a code in another programming languague
     * flexible enough so existing models from tensorflow or caffe or other popular libraries could be easily converted
@@ -29,25 +30,29 @@ Given below "Basic goals" started to "draw" this counter proposal but it didn't 
 
  * WebAI.getCapabilities()
  * WebAI.getOperations(operationsQuery)
+ * WebAI.quantize(modelObject, options)
 
  * WebAI.defineDomain(domainDescriptionObject);
  * WebAI.defineOperation(operationDescriptionObject, operation)
  * WebAI.defineOperationVariant(operationVariantDescriptionObject, operation)
- * WebAI.defineExport(...TBD...)
- * WebAI.defineRun(...TBD...)
- * WebAI.defineTrain(...TBD...)
- * WebAI.defineVerify(...TBD...)
+ * WebAI.defineExport(exportDescriptionObject, exportFunction)
+ * WebAI.defineRun(runDescriptionObject, runFunction)
+ * WebAI.defineTrain(trainDescriptionObject, trainFunction)
+ * WebAI.defineVerify(verifyDescriptionObject, verifyFunction)
 
  * const ai = new WebAI.NeuralNetwork(nnModelObject)
  * ai.prepareData(normalizeInput, normalizeOutput, arrayOfData)
  * ai.train(data, options)
  * ai.stopTraining()
  * ai.verify(data, options)
- * ai.run(input, normalizeInput, denormalizeOutput, options)
+ * ai.run(input, options)
+ * ai.runStream(input, options)
  * ai.reset()
  * ai.getInternalState()
  * ai.setInternalState(state)
  * ai.export(options)
+ * ai.computeGradients(batchData)
+ * ai.applyGradients(gradients)
 
 
 ## Simple self explanatory JavaScript example
@@ -75,7 +80,7 @@ WebAI.getCapabilities(optionalCapabilitiesQueryObject)
 
 const ai = new WebAI.NeuralNetwork({ // simple NN example object
   // when no object provided to constructor or missing properties, defaults should be assumed
-  domain: 'core',     // can be skipped because it is default domain, if given domain is not supported then 
+  domain: 'core',     // can be skipped because it is default domain, if given domain is not supported then
                       // throws error
 
   dataType: 'fp16',   // every domain can define its own default data type, and if it doesn't, lack of this
@@ -90,20 +95,27 @@ const ai = new WebAI.NeuralNetwork({ // simple NN example object
                       // To consider activations: identity, binary, tanh, isrlu, relu, elu, softclip, sin, sinc, gauss,
                       // see https://www.wikiwand.com/en/Activation_function
 
+  // Declarative I/O processing can simplify or remove the need for callbacks
+  io: {
+    input: { normalize: { type: "rescale-linear", from: [0, 255], to: [0, 1] } },
+    output: { denormalize: { type: "one-hot-to-label", labels: ["cat", "dog"] } }
+  },
+
   layers: [8, 14, 8], // [ inputs, ... hidden ... , outputs ]
 
   setup: {    // field optional
 
     data: '', // Weights, biases, and other parameters ...
-              // If string then base64 encoded setup data expected, 
+              // If string then base64 encoded setup data expected,
               // Can be also an array or typed array (of dataType),
               // If field not provided random values assumed
 
   }
-});   
+});
 
 
 // === Start of user provided normalization/denormalization callbacks ===
+// These are only needed if the declarative `io` block is not sufficient
 
 const normalizeInput = input => { // normalize input data to expected data range: 0 .. 1
   // normalization code
@@ -111,14 +123,14 @@ const normalizeInput = input => { // normalize input data to expected data range
 }
 /*
   function can return:
-    * array of numbers, 
+    * array of numbers,
     * typed array,
     * object - if provided, then its properties values should be arrays that will be
         passed directly to named pipes on input layer where names will correspond to
         named properties, all values that will be not in object will be passed to
         unnamed pipes and input layer in order of appearance
     * array of mixed above - will be automatically unwrapped to single array
-  
+
   Examples:
     * return { imageData: [...], coordinates: [0, 0]};  // can return just an object
     * return [{ imageData: [...], coordinates: [0, 0]}, [0, 0, [1]], 0, 0, 0.6]; // or mixed data
@@ -145,25 +157,20 @@ const denormalizeOutput = outputNormalized => { // reverse output data normaliza
 // returns typed array of dataType of NN with series of instructions and data:
 // <instruction> <inputData...> <outputData...>
 //  where instruction could be encoded as:
-//  0 - WebAI.reset translates to that code - no input and no output data, only performing reset
-//  1 - WebAI.ignore translates to that code - expect only input data, no verification on output data
+//  0 - WebAI.RESET translates to that code - no input and no output data, only performing reset
+//  1 - WebAI.IGNORE translates to that code - expect only input data, no verification on output data
 //  3 - full training data (input and output)
 // Size of inputData and outputData determined by neural network architecture and data type
 // Size of instruction is an equivalent of NN data type size
 
 const data = ai.prepareData(normalizeInput, normalizeOutput, [
-  /*
-  inputData1, outputData1,
-  inputData2, outputData2,
-  ...
-  WebAI.reset,                // const "reset" of WebAI defines an instruction inside data for training or verification procedures 
+  [inputData1, outputData1],
+  [inputData2, outputData2],
+  WebAI.RESET,                // const "RESET" of WebAI defines an instruction inside data for training or verification procedures
                               // that NN internal historical and recurrent data reset should be performed
-  ...
-  inputDataN, WebAI.ignore,   // const "ignore" of WebAI defines an instruction inside data for training or verification procedures 
+  [inputDataN, WebAI.IGNORE],   // const "IGNORE" of WebAI defines an instruction inside data for training or verification procedures
                               // that for given input output should be ignored (for example in recurrent NNs)
-  ...
-  inputDataX, outputDataX
-  */
+  [inputDataX, outputDataX]
 ])
 /* optionally:
   const stream = ai.prepareDataStream(normalizeInput, normalizeOutput)
@@ -219,12 +226,19 @@ ai.verify(data, options) // data can be a binary stream or typed array
   });
 
 
-ai.run(input, normalizeInput, denormalizeOutput) 
-  // if normalizeInput callback not provided or null then input expected to be a typed array of dataType of NN, 
-  // if denormalizeOutput not provided or null then typed array of dataType of NN should be returned
-
+ai.run(input, { denormalize: false })
+  // 'input' is the raw data. Normalization is handled by the `io` block if defined.
+  // The 'options' object can override default behavior, e.g., to get raw normalized output.
+  // If `io` block is not present, callbacks for normalization can be passed:
+  // ai.run(input, { normalize: normalizeInput, denormalize: denormalizeOutput })
   .then(output => {
   })
+
+// New method for streaming inference, perfect for LLMs
+// Returns an async generator
+for await (const partialResult of ai.runStream(input)) {
+  // e.g., partialResult could be { token: '...' }
+}
 
 ai.reset()  // Resets any internal state, historical data inside NN and
             // recurrent data
@@ -234,9 +248,9 @@ ai.reset()  // Resets any internal state, historical data inside NN and
 
 ai.getInternalState()
 ai.setInternalState(state)
-// Allows to store and restore state of NN for recurent and statefull NNs
+// Allows to store and restore state of NN for recurrent and stateful NNs
 // If state is null or undefined then equivalent to ai.reset()
-  
+
 
 
 ai.export({
@@ -252,11 +266,11 @@ ai.export({
                             // combines all NNs into one (if "net" operation used), removes properties that have and
                             // match default values
                             // if property not provided then returns in exact form as was provided
-                            // if property is "pretty" moves all possible properties values from "setup" to layers 
+                            // if property is "pretty" moves all possible properties values from "setup" to layers
                             // and pipes
 
     layers: {               // if provided - exports only selected layers/selected range of layers as NN JSON object
-                            // allows to make autoencoder NNs or to split NNs so they could be runned in chain of 
+                            // allows to make autoencoder NNs or to split NNs so they could be runned in chain of
                             // separate sub-NNs across multiple execution units
                             // should throw an error if there is any layer or pipe that would make splitting NN
                             // impossible
@@ -297,7 +311,8 @@ ai.export({
   - **type** property defines a type of operator for given layer or pipe, available options for core ml: neurons, lstm-n, lstm-p, gru. Where "n" stands for "normalized", and "p" for "pseudo". Default is defined at domain level and can be changed at model level by providint "type" property in root of model
   - **activation** property defines an activation operation for operation in given layer or pipe. It expects operation with given name to be defined and have set "isActivation" property set to true
   - **pipes** property defines a list of pipes for given layer
-  - **size** property defines how many inputs/neurons/outputs is in layer/pipe operation, can be a number or array - if array provided (eg [2, 3, 5]) then assumed multidimmensional output, single number is just a shorthand for: [number]
+  - **size** property defines how many inputs/neurons/outputs is in layer/pipe operation, can be a number or array - if array provided (eg [2, 3, 5]) then assumed multidimmensional output, single number is just a shorthand for: [number]. **To handle dynamic shapes, a dimension can be set to `null` (e.g. `[null, null, 3]`)**.
+  - **shapeHints** optional property to provide optimization hints for dynamic shapes (`{ dim_0: { max: 16 }, dim_1: { common: [128, 256] }}`).
   - **to** property defines where to pipe neuron/operation outputs(or data inputs if on input layer) of current layer/pipe
   - **history** property defines additional outputs of current layer/pipe build out of values of neuron/operation outputs (or input data if on input layer) from given number of previous NN runs
   - **historyTo** property defines where to pipe previous NN runs values of neuron/operation outputs(or data inputs if on input layer) from current layer/pipe
@@ -327,7 +342,6 @@ const ai = new WebAI.NeuralNetwork({
   ],
 
 });
-
 ```
 
 ### Another advanced example with usage of "history" shown
@@ -340,12 +354,12 @@ const ai = new WebAI.NeuralNetwork({
 
   layers: [
     { // first layer always is an input layer
-      name: 'input'
+      name: 'input',
       pipes: [
         {
           name: 'rgb',
           size: 3,
-          history: 2,           // reserves memory for 6 additional values (size * history = 2 * 3 = 6) 
+          history: 2,           // reserves memory for 6 additional values (size * history = 2 * 3 = 6)
                                 // to keep two previous values of given 3 inputs
           historyTo: ['input']  // pipe historical values to input layer (will create hidden 6 inputs)
                                 // note that original 3 inputs are still piped directly to next layer
@@ -358,8 +372,8 @@ const ai = new WebAI.NeuralNetwork({
     },
     {
       // layer of GRU LSTM kind of neurons
-      connections: "all-to-all", // this is default and can be skipped, 
-                                 // every neuron in this layer has a connection to every predecessing neuron 
+      connections: "all-to-all", // this is default and can be skipped,
+                                 // every neuron in this layer has a connection to every predecessing neuron
                                  // output (or every input value if predecessing is input layer/input pipe)
 
       type: "gru",  // default value if property skipped is: "neurons"
@@ -372,17 +386,14 @@ const ai = new WebAI.NeuralNetwork({
         // equivalent to: {size: 3} and {type: "neurons", size: 3} and {connections: "all-to-all", type: "neurons", size: 3}
         //       and and {connections: "all-to-all", type: "neurons", activation: "tanh", size: 3}   :-)
   ],
-
 });
-
 ```
 
-## Simple example of combining bigger NN out of smaller NNs
+### Example of combining bigger NN out of smaller NNs
 ```javascript
-
 const smallerNN1 = {
   dataType: 'u8',
-  activation: 'relu'
+  activation: 'relu',
   layers: [8, 8, 8],
   setup: {
     data: '',
@@ -392,7 +403,7 @@ const smallerNN1 = {
 
 const smallerNN2 = {
   dataType: 'u8',
-  activation: 'relu'
+  activation: 'relu',
   layers: [8, 8, 8],
   setup: {
     data: '',
@@ -403,7 +414,7 @@ const smallerNN2 = {
 
 const ai = new WebAI.NeuralNetwork({
   dataType: 'u8',
-  activation: 'relu'
+  activation: 'relu',
   layers: [
     8,
     8,
@@ -418,57 +429,84 @@ const ai = new WebAI.NeuralNetwork({
       type: "net",
       net: smallerNN2
     }
-
-  ],
-
+  ]
 });
-
 ```
 
+### Example: Diffusion Model with `iterator` Control Flow
+To support complex, iterative processes without inefficient JavaScript loops, a special `iterator` layer type can be used.
+
+```javascript
+const diffusionModel = {
+  layers: [
+    {
+      type: "iterator",
+      steps: { from: 999, to: 0, step: -1 }, // Loop definition
+      state: [ // State variables carried between iterations
+        { name: "x", pipeFrom: "initial_noise" }
+      ],
+      net: { // The sub-network executed in each step
+        layers: [
+          // The current state 'x' and timestep 't' are piped in
+          { name: "x_input", pipeFrom: "x" },
+          { name: "t_input", pipeFrom: "iterator:step" },
+
+          { type: "net", net: uNetModel, to: "predicted_noise" },
+
+          // An operation to compute the next state, which updates the 'x' state variable
+          { type: "ddpmUpdateStep", /* ... inputs ... */ to: "x" }
+        ]
+      }
+    }
+  ]
+};
+```
 
 ## API for atomic ML operations
 
+This is the extensibility API that makes WebAI future-proof. It allows developers to define new domains, operations, training algorithms, and more.
+
 ```javascript
+// Defines a new exporter, e.g., to generate Python code.
+WebAI.defineExport(
+  { name: "to-python-numpy", domain: "core" },
+  (internalModel, options) => {
+    // Logic to iterate through internalModel's layers and weights...
+    let pythonCode = 'import numpy as np\n\n';
+    // ...generate Python code...
+    return pythonCode;
+  }
+);
 
-WebAI.getOperations(operationsQuery)
-  /*
-    where operationsQuery could look like this:
-    {
-      domain: "operations_domain eg: 'core'"
-      dataType: "fp16",
-      variant: "default" // optional variant of operation, if skipped then "default" assumed
-    }
-  */
+// Defines a new "run" engine for a domain. This is how the browser implements
+// the execution backend for a set of operations.
+WebAI.defineRun(
+  { name: "default-runner", domain: "core" },
+  (internalModel, inputArray, state) => {
+    // This function takes the compiled model, input, and state,
+    // and performs the forward pass, returning { output, newState }.
+    // This is the "engine" that executes the graph.
+  }
+);
 
-  .then(webAiOperations => {
-    /*
-      would return object with operation functions:
-      {
-        ...
-        fusedMatMul(a, b, transposeA, transposeB, bias, activationFn) {},
-        someStatefullOperation(a, b, state) {},
-        ...
-      }
-    */
-    const A = [/* ... */];
-    const B = [/* ... */];
+// Defines a new training algorithm. This is how "back-propagation" itself would be implemented.
+WebAI.defineTrain(
+  { name: "back-propagation", domain: "core" },
+  (internalModel, trainingData, options, controlSignal) => {
+    // A function that takes the compiled model, training data, options, and a
+    // signal to listen for `stopTraining()` calls. It performs the training
+    // loop and returns a Promise resolving with the final stats.
+  }
+);
 
-    const state1 = webAiOperations.someStatefullOperation.getNewState();
-    const someProduct = webAiOperations.someStatefullOperation(A, B, state1);
-
-    const result = webAiOperations.fusedMatMul(A, B, true, true, 0.0, "tanh");
-
-  })
-
-// defines a new domain
-WebAI.defineDomain({
-  domainName: "domain_name",      // throws error when domain already exist
-  defaultDataType: "fp32",        // optional
-  defaultOperationType: "neurons" // optional
-});
-
-
-
+// Defines a new verification method.
+WebAI.defineVerify(
+  { name: "default-verifier", domain: "core" },
+  (internalModel, verificationData, options) => {
+    // Runs the model on the verification data, compares against expected outputs,
+    // and returns a Promise resolving with the final verification info.
+  }
+);
 
 // defines a new operation for given domain, operation will be assigned to "default" variant
 WebAI.defineOperation( // throws error if operation already exist
@@ -481,20 +519,20 @@ WebAI.defineOperation( // throws error if operation already exist
       dataType: "fp32",
 
       model: {
-        isActivation: true,           // If property is defined and its value is true then operation can 
+        isActivation: true,           // If property is defined and its value is true then operation can
                                       // be used as activation function
 
         allowedOnFirstLayer: false,   // Throws error if someone tries to use such an operation
                                       // on first layer (inputs layer) if this set to false
 
-        defineParams: ["*param1", "!param2", "!*param3", "paramN", paramObject, paramObject1, paramObjectN], 
+        defineParams: ["*param1", "!param2", "!*param3", "paramN", paramObject, paramObject1, paramObjectN],
                                                   // List of all properties of this operation available
                                                   // to JSON model
                                                   // Properties can be defined via shorthand or object
                                                   // (details below)
-        
+
         callWith: [":param1", ":param1", "param2", "paramN"],
-                        // Allows to call operation_itself with given parameters 
+                        // Allows to call operation_itself with given parameters
                         // from model
 
         // it is possible to pass same param to function multiple times
@@ -506,7 +544,7 @@ WebAI.defineOperation( // throws error if operation already exist
 
   function operation_itself(operation_params) {
     // Js code itself can make use of any existing API (including webgpu, webgl, webml)
-    // Function should return typed array or array or nested arrays 
+    // Function should return typed array or array or nested arrays
     // Multidimmensional nested arrays can be flatten to single dimmension
   },
 );
@@ -522,8 +560,8 @@ const paramObject = {
   internalState: false,         // Property will be not available to model, only as internal
                                 // state. Access to it is via "state" property or given name
 
-  arrayType: true,              // Such a parameter can be a pipe end (accepts piped pipes 
-                                // and layers) or array (also array of arrays for 
+  arrayType: true,              // Such a parameter can be a pipe end (accepts piped pipes
+                                // and layers) or array (also array of arrays for
                                 // multidimmensional arrays)
 
   noSetup: true,                // Prevents given parameter from being stored in setup.data
@@ -535,12 +573,12 @@ const paramObject = {
 
   trainOnlyIfNotInModel: true,  // Prevents training on property data if provided in model
 
-  callDefaultWith: ["param1", "param2", ":param2", "&param2", "paramN"],   
-                                // Allows to call "default" function with given parameters 
+  callDefaultWith: ["param1", "param2", ":param2", "&param2", "paramN"],
+                                // Allows to call "default" function with given parameters
                                 // from model
 
 
-  default: (p1, p2, p3) => {    // If default property is a function then calculation is 
+  default: (p1, p2, p3) => {    // If default property is a function then calculation is
     return 10;                  // to retrieve default value
   }                             // In other case, default value is a property value
 }
@@ -572,8 +610,8 @@ const paramObject = {
     - "~" - equivalent to: paramObject.internalState = true
 
   Example:
- 
-  "!@*weights" is equivalent to: { name: "weights", noSetup: true, arrayType: true, subjectOfTraining: true } 
+
+  "!@*weights" is equivalent to: { name: "weights", noSetup: true, arrayType: true, subjectOfTraining: true }
 
 
 #### Reserved property/parameters names
@@ -631,6 +669,7 @@ WebAI.defineOperationVariant( // throws error if variant already exist or operat
 
   * input - for assigning inputs (first layer and all pipes at first layer by default have this type)
   * net   - for attaching another neural network into current structure
+  * iterator - for defining an iterative control flow loop within the model graph.
 
 ## Example with custom operations on model level
 
@@ -653,20 +692,20 @@ WebAI.defineOperation(
         {                                     // (notice no default input for this operation)
 
           name: "size",                       // We want to calculate output dimmensions, that is allowed use
-                                              // of predefined reserved param, but it can only define 
+                                              // of predefined reserved param, but it can only define
                                               // properties to calculate default
 
           paramsForDefault: [":a", ":b"],     // ":" - get dimmensions of parameter a and b
-          default: (lengthOfA, lengthOfB) => (lengthOfA[0] > lengthOfB[0]) ? lengthOfA : lengthOfB;
+          default: (lengthOfA, lengthOfB) => (lengthOfA[0] > lengthOfB[0]) ? lengthOfA : lengthOfB
         }                                     // Notice that dimmensions are passed as array
                                               // Even single dimmensions passed as number will be converted to array with length "1"
       ],
-      callWith: ["a", "b", ":a", ":b", "value"],
+      callWith: ["a", "b", "value"],
     }
   },
 
-  (a, b, a_length, b_length, valueToCompareWith) => {
-    if (a_length[0] !== b_length[0]) throw new Error('inputs have to have same lengths')
+  (a, b, valueToCompareWith) => {
+    if (a.length !== b.length) throw new Error('inputs have to have same lengths')
     let result = [];
     for (let i = 0; i < a.length; i++) {
       if (a[i] > valueToCompareWith && b[i] > valueToCompareWith) {
@@ -684,19 +723,19 @@ WebAI.defineOperation(
     domain: "custom-domain",
     dataType: "fp32",
     model: {
-      defineParams: ["*input", "value", 
-        {                              
-          name: "size", 
+      defineParams: ["*input", "value",
+        {
+          name: "size",
           paramsForDefault: [":input"],
-          default: calc: length => length  // output with size of input
+          default: length => length  // output with size of input
         }
       ],
-      callWith: ["input", "value", ":input"],
+      callWith: ["input", "value"],
     }
   },
-  (input, valueToCompareWith, input_length) => {
+  (input, valueToCompareWith) => {
     let result = [];
-    for (let i = 0; i < input_length[0]; i++) {
+    for (let i = 0; i < input.length; i++) {
       if (input[i] < valueToCompareWith) {
         result[i] = input[i];
       } else {
@@ -721,25 +760,24 @@ WebAI.defineOperation(
           name: "weights",
           arrayType: true,
           subjectOfTraining: true,
-          paramsForDefault: [":input", "size", "connections"], // input and size are predefined properties
+          paramsForDefault: [":input", "#size", "connections"], // input and size are predefined properties
                                                                 // so we can use them here without defining
-          default: (inputsDimmensions, neuronsDimmensions, connectionsType) => {
+          default: (inputsDimmensions, totalNeurons, connectionsType) => {
             // for sake of simplicity skipped taking into consideration connection type here
-
-            return { size: [...inputDimmensions, ...neuronDimmensions] };
+            const totalInputs = inputsDimmensions.reduce((a, b) => a * b);
+            return { size: [totalInputs, totalNeurons] };
                                       // object passed as default to array property means that
                                       // it is dimmensions object and based on it data will be
                                       // be stored in setup.data with random values at the begining
-          };
+          }
         }
       ],
-      callWith: ["input", "weights", "bias", "activation", "connections", ":input"],
+      callWith: ["input", "weights", "bias", "activation", "connections"],
     }
   },
-  (inputs, weights, bias, activationFunction, connectionsType, neuronsCount) => {
-    let result = new Float32Array(neuronsCount.reduce((a, b) => a * b));
+  (inputs, weights, bias, activationFunction, connectionsType) => {
     // some code for neuron layers that calls activationFunction( ) for each neuron
-    return result;
+    return new Float32Array(/*...result...*/);
   }
 );
 
@@ -760,20 +798,21 @@ const ai = new WebAI.NeuralNetwork({
         {
           name: "A",                  // could be skipped here, but placed it for readibility of code
           size: 30,
-          to: ['addIfAboveInputA'] 
+          to: 'add_op.a'
         },
         {
           name: "B",                  // could be skipped here, but placed it for readibility of code
-          size: 30
-          to: ['addIfAboveInputB'] 
+          size: 30,
+          to: 'add_op.b'
         }
       ]
     },
     {
-      // operation here doesn't support default input, so naming this layer wouldn't allow pipes/layers to acces it by layer name
+      name: "add_op",
+      // operation here doesn't support default input, so we use named parameters
       type: 'addIfAbove',
-      a: 'addIfAboveInputA',          // assigned unique name to parameter A of addIfAbove custom operation
-      b: 'addIfAboveInputB',          // assigned unique name to parameter B of addIfAbove custom operation
+      a: 'add_op.a',          // define a pipe end named 'a' for this operation instance
+      b: 'add_op.b',          // define a pipe end named 'b' for this operation instance
       value: 0                        // if this property wouldn't be placed here its value would be expected in "setup.data" field of model
     },
     {
@@ -782,18 +821,18 @@ const ai = new WebAI.NeuralNetwork({
     },
     30 // layer of "neuron" type operation with 30 neurons and connections type "every-to-every"
   ]
-
-}); 
-
-
+});
 ```
 
 
 ## Further things to keep in mind
 
-There could be also designed standardized JSON format for simple normalizations/denormalizations of numbers and enumerations
-
-Possibility to add custom training algorithms to domains
+- **Standardization of Primitives:** For this API to gain widespread adoption, it is crucial that a "standard library" of operations (`conv2d`, `layerNorm`, `selfAttention`, `graphConv`, etc.) is provided in `core` domains, so developers don't have to define them from scratch.
+- **Debugging and XAI:** The API should be extended with debugging hooks. `ai.computeGradients` and `ai.applyGradients` provide primitives for Reinforcement Learning and some XAI techniques. A future `ai.run({ debug: true })` could return intermediate activations for easier debugging.
+- **Quantization:** A helper utility `WebAI.quantize(modelObject, options)` can handle Post-Training Quantization (PTQ). Quantization-Aware Training (QAT) can be enabled with an option in `ai.train({ quantization: { mode: 'qat' } })`.
+- **Security:** As models and operations can be defined in JavaScript, the execution environment must be robustly sandboxed to prevent malicious code from accessing sensitive system resources beyond the intended scope of the API.
+- There could be also designed standardized JSON format for simple normalizations/denormalizations of numbers and enumerations (as shown in the `io` block).
+- Possibility to add custom training algorithms to domains (as shown with `WebAI.defineTrain`).
 
 ## Links
 https://towardsdatascience.com/a-deeper-understanding-of-nnets-part-1-cnns-263a6e3ac61
